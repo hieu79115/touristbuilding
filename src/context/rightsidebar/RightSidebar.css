@@ -39,3 +39,11 @@ li {
 li:hover {
     color: #007bff;
 }
+
+.container {
+    height: 86%;
+}
+
+.floating-button {
+    transform: translate(70%, -50%);
+}

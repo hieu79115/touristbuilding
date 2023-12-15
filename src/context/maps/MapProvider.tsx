@@ -8,17 +8,21 @@ import { directionsApi, reverseLookupApi } from '../../apis';
 import { DirectionsResponse } from '../../interfaces/directions';
 import { MapContext } from './MapContext';
 import { mapReducer } from './MapReducer';
+import { placesReducer } from '../places/PlacesReducer';
+import { Feature, PlacesResponse } from '../../interfaces/places';
 
 export interface MapStateProps {
     isMapReady: boolean;
     map?: Map;
     markers: Marker[];
+    listPlaces: Feature[];
 }
 
 const INITIAL_STATE: MapStateProps = {
     isMapReady: false,
     map: undefined,
     markers: [],
+    listPlaces: [],
 };
 
 interface Props {
@@ -30,7 +34,46 @@ export const MapProvider = ({ children }: Props) => {
     const [state, dispatch] = useReducer(mapReducer, INITIAL_STATE);
     const { places } = useContext(PlacesContext);
     const { markers, map } = state;
-    // const [previousMarker, setPreviousMarker] = useState<Marker | null>(null);
+    const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
+    const [listPlaces, setListPlaces] = useState<Feature[]>([]);
+    const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
+
+    const reverseLookup = async (latitude: number, longitude: number) => {
+        console.log(latitude, longitude);
+        try {
+            const response = await reverseLookupApi.get(
+                `/${longitude},${latitude}.json`
+            );
+
+            console.log(response.data.features);
+
+            const newPlaces: Feature[] = response.data.features;
+            dispatch({ type: 'addPlaceToList', payload: newPlaces });
+            setListPlaces(newPlaces);
+
+            // const data: Feature = response.data.feature;
+            // console.log(response.data.features);
+            return newPlaces;
+        } catch (error) {
+            console.error('Error in reverse lookup:', error);
+            throw error;
+        }
+    };
+
+    const addFeatureToSelection = (feature: Feature) => {
+        setSelectedFeatures((prevFeatures) => [...prevFeatures, feature]);
+    };
+
+    const addPlaceToList = (place: Feature) => {
+        let newPlaces: Feature[] = [];
+        listPlaces.forEach((item) => {
+            newPlaces.push(item);
+        });
+        newPlaces.push(place);
+        dispatch({ type: 'addPlaceToList', payload: newPlaces });
+        setListPlaces(newPlaces);
+        console.log('List Places:', listPlaces);
+    };
 
     useEffect(() => {
         const newMarkers: Marker[] = [];
@@ -51,19 +94,22 @@ export const MapProvider = ({ children }: Props) => {
                 .addTo(map!);
 
             newMarkers.push(newMarker);
-        }
 
-        const customButton = document.getElementById('customButton');
-        if (customButton) {
-            customButton.addEventListener('click', () => {
-                // Xử lý khi nút được nhấn
-                console.log('Button clicked!');
-            });
+            setSelectedMarker(newMarker);
         }
 
         clearMarkers();
 
         dispatch({ type: 'setMarkers', payload: newMarkers });
+
+        const customButton = document.getElementById('customButton');
+        if (customButton) {
+            customButton.addEventListener('click', () => {
+                console.log(selectedMarker?.getLngLat());
+                console.log('Button clicked!');
+                // addPlaceToList(selectedFeature);
+            });
+        }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [places]);
@@ -84,6 +130,18 @@ export const MapProvider = ({ children }: Props) => {
             .setPopup(popup)
             .addTo(map!);
 
+        // Ghi nhớ newMarker trong local state
+        setSelectedMarker(newMarker);
+
+        // console.log(places);
+        // // Thêm thông tin của feature vào danh sách khi click vào marker
+        // const [selectedFeature] = places.filter(
+        //     (place) => place.center[0] === lng && place.center[1] === lat
+        // );
+        // if (selectedFeature) {
+        //     addFeatureToSelection(selectedFeature);
+        // }
+
         // Kiểm tra xem có marker nào ở gần không
         const nearbyMarker = markers.find((m) => {
             const newMarkerLngLat = newMarker.getLngLat();
@@ -99,7 +157,6 @@ export const MapProvider = ({ children }: Props) => {
             return isCloseEnough;
         });
 
-        // console.log('nearbyMarker', ma);
         if (nearbyMarker) {
             // Ưu tiên marker gần
             nearbyMarker.togglePopup();
@@ -112,12 +169,24 @@ export const MapProvider = ({ children }: Props) => {
             // Xóa marker trước đó nếu có
             if (previousMarker) {
                 previousMarker.remove();
-                console.log('remove');
             }
 
             // Lưu marker mới vào biến previousMarker
             previousMarker = newMarker;
-            console.log('set', previousMarker);
+        }
+
+        const customButton = document.getElementById('customButton');
+        if (customButton) {
+            customButton.addEventListener('click', () => {
+                console.log(newMarker.getLngLat());
+                const lng = newMarker.getLngLat().lng;
+                const lat = newMarker.getLngLat().lat;
+                console.log('Button clicked!');
+                // console.log('Lng:', lng);
+                // console.log('Lat:', lat);
+                reverseLookup(lat, lng);
+                // console.log('List Places:', listPlaces);
+            });
         }
     };
 
@@ -222,6 +291,10 @@ export const MapProvider = ({ children }: Props) => {
                 ...state,
                 setMap,
                 getRouteBetweenPoints,
+                setSelectedMarker,
+                selectedFeatures,
+                addFeatureToSelection,
+                addPlaceToList,
             }}
         >
             {children}
