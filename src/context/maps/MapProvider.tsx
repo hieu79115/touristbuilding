@@ -29,13 +29,13 @@ interface Props {
     children: JSX.Element | JSX.Element[];
 }
 let previousMarker: Marker | null = null;
+let listPlaces: Feature[] = [];
 
 export const MapProvider = ({ children }: Props) => {
     const [state, dispatch] = useReducer(mapReducer, INITIAL_STATE);
     const { places } = useContext(PlacesContext);
     const { markers, map } = state;
     const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
-    const [listPlaces, setListPlaces] = useState<Feature[]>([]);
     const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
 
     const reverseLookup = async (latitude: number, longitude: number) => {
@@ -48,11 +48,26 @@ export const MapProvider = ({ children }: Props) => {
             console.log(response.data.features);
 
             const newPlaces: Feature[] = response.data.features;
-            dispatch({ type: 'addPlaceToList', payload: newPlaces });
-            setListPlaces(newPlaces);
+            console.log('List places:');
+            console.log(listPlaces);
+            // Kiểm tra xem phần tử cuối cùng có giống với điểm thêm không
+            const isDuplicate =
+                listPlaces.length > 0 &&
+                listPlaces[listPlaces.length - 1].center[0] ===
+                    newPlaces[0].center[0] &&
+                listPlaces[listPlaces.length - 1].center[1] ===
+                    newPlaces[0].center[1];
 
-            // const data: Feature = response.data.feature;
-            // console.log(response.data.features);
+            console.log(listPlaces[listPlaces.length - 1]);
+            console.log('New place:');
+            console.log(newPlaces[0].center);
+
+            if (!isDuplicate) {
+                // Nếu không giống, thêm vào danh sách và cập nhật state
+                dispatch({ type: 'addPlaceToList', payload: newPlaces });
+                listPlaces = [...listPlaces, ...newPlaces];
+            }
+
             return newPlaces;
         } catch (error) {
             console.error('Error in reverse lookup:', error);
@@ -60,20 +75,19 @@ export const MapProvider = ({ children }: Props) => {
         }
     };
 
-    const addFeatureToSelection = (feature: Feature) => {
-        setSelectedFeatures((prevFeatures) => [...prevFeatures, feature]);
-    };
+    useEffect(() => {
+        if (listPlaces.length > 0) {
+            listPlaces.forEach((element) => {
+                const [lng, lat] = element.center;
 
-    const addPlaceToList = (place: Feature) => {
-        let newPlaces: Feature[] = [];
-        listPlaces.forEach((item) => {
-            newPlaces.push(item);
-        });
-        newPlaces.push(place);
-        dispatch({ type: 'addPlaceToList', payload: newPlaces });
-        setListPlaces(newPlaces);
-        console.log('List Places:', listPlaces);
-    };
+                const newMarker = new Marker({ color: 'gray' })
+                    .setLngLat([lng, lat])
+                    .addTo(map!);
+
+                markers.push(newMarker);
+            });
+        }
+    });
 
     useEffect(() => {
         const newMarkers: Marker[] = [];
@@ -83,7 +97,7 @@ export const MapProvider = ({ children }: Props) => {
             const popupContent = `
                 <h6>${place.text_es}</h6>
                 <p class='text-muted' style='font-size: 12px'>${place.place_name}</p>
-                <button id="customButton">Click me</button>
+                <button id="customButton">Add</button>
             `;
 
             const popup = new Popup().setHTML(popupContent);
@@ -102,15 +116,6 @@ export const MapProvider = ({ children }: Props) => {
 
         dispatch({ type: 'setMarkers', payload: newMarkers });
 
-        const customButton = document.getElementById('customButton');
-        if (customButton) {
-            customButton.addEventListener('click', () => {
-                console.log(selectedMarker?.getLngLat());
-                console.log('Button clicked!');
-                // addPlaceToList(selectedFeature);
-            });
-        }
-
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [places]);
 
@@ -125,22 +130,13 @@ export const MapProvider = ({ children }: Props) => {
 
         const popup = new Popup().setHTML(popupContent);
 
-        const newMarker = new Marker()
+        let newMarker = new Marker()
             .setLngLat([lng, lat])
             .setPopup(popup)
             .addTo(map!);
 
         // Ghi nhớ newMarker trong local state
         setSelectedMarker(newMarker);
-
-        // console.log(places);
-        // // Thêm thông tin của feature vào danh sách khi click vào marker
-        // const [selectedFeature] = places.filter(
-        //     (place) => place.center[0] === lng && place.center[1] === lat
-        // );
-        // if (selectedFeature) {
-        //     addFeatureToSelection(selectedFeature);
-        // }
 
         // Kiểm tra xem có marker nào ở gần không
         const nearbyMarker = markers.find((m) => {
@@ -162,6 +158,7 @@ export const MapProvider = ({ children }: Props) => {
             nearbyMarker.togglePopup();
             newMarker.remove();
             previousMarker?.remove();
+            newMarker = nearbyMarker;
         } else {
             // Hiển thị popup cho marker mới
             newMarker.togglePopup();
@@ -173,17 +170,17 @@ export const MapProvider = ({ children }: Props) => {
 
             // Lưu marker mới vào biến previousMarker
             previousMarker = newMarker;
+            console.log('Marker added!');
+            console.log(newMarker.getLngLat());
         }
 
         const customButton = document.getElementById('customButton');
         if (customButton) {
             customButton.addEventListener('click', () => {
-                console.log(newMarker.getLngLat());
+                // console.log(newMarker.getLngLat());
                 const lng = newMarker.getLngLat().lng;
                 const lat = newMarker.getLngLat().lat;
-                console.log('Button clicked!');
-                // console.log('Lng:', lng);
-                // console.log('Lat:', lat);
+                // console.log('Button clicked!');
                 reverseLookup(lat, lng);
                 // console.log('List Places:', listPlaces);
             });
@@ -293,8 +290,6 @@ export const MapProvider = ({ children }: Props) => {
                 getRouteBetweenPoints,
                 setSelectedMarker,
                 selectedFeatures,
-                addFeatureToSelection,
-                addPlaceToList,
             }}
         >
             {children}
