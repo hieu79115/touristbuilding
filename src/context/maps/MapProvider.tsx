@@ -36,7 +36,7 @@ export const MapProvider = ({ children }: Props) => {
     const { places } = useContext(PlacesContext);
     const { markers, map } = state;
     const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
-    const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
+    // const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
 
     const reverseLookup = async (latitude: number, longitude: number) => {
         console.log(latitude, longitude);
@@ -45,7 +45,7 @@ export const MapProvider = ({ children }: Props) => {
                 `/${longitude},${latitude}.json`
             );
 
-            console.log(response.data.features);
+            // console.log(response.data.features);
 
             const newPlaces: Feature[] = response.data.features;
             console.log('List places:');
@@ -58,10 +58,6 @@ export const MapProvider = ({ children }: Props) => {
                 listPlaces[listPlaces.length - 1].center[1] ===
                     newPlaces[0].center[1];
 
-            console.log(listPlaces[listPlaces.length - 1]);
-            console.log('New place:');
-            console.log(newPlaces[0].center);
-
             if (!isDuplicate) {
                 // Nếu không giống, thêm vào danh sách và cập nhật state
                 dispatch({ type: 'addPlaceToList', payload: newPlaces });
@@ -73,6 +69,31 @@ export const MapProvider = ({ children }: Props) => {
             console.error('Error in reverse lookup:', error);
             throw error;
         }
+    };
+
+    const updateListPlaces = (newListPlaces: Feature[]) => {
+        console.log('Updating list places in MapProvider:', newListPlaces);
+        // Cập nhật state của MapProvider ở đây...
+        //remove listPlaces marker
+        listPlaces.forEach((place) => {
+            const [lng, lat] = place.center;
+
+            markers.forEach((marker) => {
+                marker.remove();
+            });
+        });
+        listPlaces = newListPlaces;
+        //add new listPlaces marker
+        newListPlaces.forEach((place) => {
+            const [lng, lat] = place.center;
+
+            const newMarker = new Marker({ color: 'gray' })
+                .setLngLat([lng, lat])
+                .addTo(map!);
+
+            markers.push(newMarker);
+        });
+        dispatch({ type: 'setListPlaces', payload: newListPlaces });
     };
 
     useEffect(() => {
@@ -88,6 +109,10 @@ export const MapProvider = ({ children }: Props) => {
             });
         }
     });
+
+    useEffect(() => {
+        console.log('ListPlaces updated:', listPlaces);
+    }, [listPlaces]);
 
     useEffect(() => {
         const newMarkers: Marker[] = [];
@@ -288,8 +313,7 @@ export const MapProvider = ({ children }: Props) => {
                 ...state,
                 setMap,
                 getRouteBetweenPoints,
-                setSelectedMarker,
-                selectedFeatures,
+                updateListPlaces,
             }}
         >
             {children}

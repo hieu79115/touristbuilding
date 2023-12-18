@@ -13,8 +13,7 @@ interface MapContextProps {
         end: [number, number]
     ) => Promise<void>;
     listPlaces: Feature[];
-    setSelectedMarker: (marker: mapboxgl.Marker | null) => void; // Thêm dòng này
-    selectedFeatures: Feature[]; // Thêm dòng này
+    updateListPlaces: (newListPlaces: Feature[]) => void;
 }
 
 export const MapContext = createContext({} as MapContextProps);

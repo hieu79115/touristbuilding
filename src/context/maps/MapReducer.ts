@@ -24,6 +24,10 @@ type MapReducerAction =
     | {
           type: 'addPlaceToList'; // Thêm dòng này
           payload: Feature[]; // Thêm dòng này
+      }
+    | {
+          type: 'setListPlaces';
+          payload: Feature[];
       };
 
 export const mapReducer = (
@@ -40,6 +44,8 @@ export const mapReducer = (
                 ...state,
                 listPlaces: [...state.listPlaces, ...action.payload],
             };
+        case 'setListPlaces':
+            return { ...state, listPlaces: action.payload };
         default:
             return state;
     }
