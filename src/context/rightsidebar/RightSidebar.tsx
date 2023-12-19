@@ -241,7 +241,7 @@ export const RightSidebar = () => {
                 {isOpen ? 'Close Sidebar' : 'Open Sidebar'}
             </button>
             <div className={`right-sidebar ${isOpen ? 'open' : 'closed'}`}>
-                <h3>Danh sách các địa điểm</h3>
+                <h3>Danh sách địa điểm</h3>
                 <div className="container">
                     {selectedFeatures.map((feature, index) => (
                         <ul
@@ -282,7 +282,7 @@ export const RightSidebar = () => {
                 {isContentVisible && (
                 <div className="sidebar-content">
                     <div className='header'>
-                        <p>Lộ trình</p>
+                        <p>Lịch Trình</p>
                         <button onClick={handleCloseButtonClick} className="close-button">
                             <img
                                 width="10"
@@ -297,7 +297,7 @@ export const RightSidebar = () => {
                         {primResult.map((edge, index) => (
                             edge.start !== edge.end && (
                                 <li key={`${edge.start}-${edge.end}`}>
-                                    {`${index}. ${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms, `}
+                                    {`${index}.  ${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms, `}
                                     {edge.minutes > 60 ? `${Math.floor(edge.minutes / 60)} giờ ${edge.minutes % 60} phút` : `${edge.minutes} phút`}
                                 </li>
                             )
