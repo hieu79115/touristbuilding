@@ -294,17 +294,19 @@ export const RightSidebar = () => {
                     </div>
                     <div className='content'>
                         <ul>
-                        {primResult.map((edge) => (
+                        {primResult.map((edge, index) => (
                             edge.start !== edge.end && (
                                 <li key={`${edge.start}-${edge.end}`}>
-                                    {`${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms, ${edge.minutes} minutes`}
+                                    {`${index}. ${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms, `}
+                                    {edge.minutes > 60 ? `${Math.floor(edge.minutes / 60)} giờ ${edge.minutes % 60} phút` : `${edge.minutes} phút`}
                                 </li>
                             )
                         ))}
+
                         </ul>
                         <p>
                             Tổng Chiều Dài: {totalDistance.toFixed(2)} kms
-                            - Tổng Thời Gian: {totalMinutes} phút
+                            - Tổng Thời Gian: {totalMinutes > 60 ? `${Math.floor(totalMinutes / 60)} giờ ${totalMinutes % 60} phút` : `${totalMinutes} phút`}
                         </p>
                     </div>
                 </div>
