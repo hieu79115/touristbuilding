@@ -58,7 +58,7 @@ export const RightSidebar = () => {
         setSelectedFeatures(listPlaces);
         console.log('List places:');
         console.log(selectedFeatures);
-    }, [listPlaces, setSelectedFeatures]);
+    }, [listPlaces, selectedFeatures]);
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
