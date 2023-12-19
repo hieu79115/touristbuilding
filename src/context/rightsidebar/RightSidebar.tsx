@@ -16,6 +16,7 @@ export const RightSidebar = () => {
     const [isContentVisible, setIsContentVisible] = useState(false);
     const [primResult, setPrimResult] = useState<Edge[]>([]);
     const [totalDistance, setTotalDistance] = useState<number>(0);
+    const [totalMinutes, setTotalMinutes] = useState<number>(0);
 
     const handleDragStart = (
         e: React.DragEvent<HTMLUListElement>,
@@ -181,6 +182,7 @@ export const RightSidebar = () => {
         start: number;
         end: number;
         weight: number;
+        minutes: number;
     }
 
     const buildGraphFromDistances = (distances: RouteResult[][]): Edge[] => {
@@ -189,28 +191,31 @@ export const RightSidebar = () => {
         for (let i = 0; i < distances.length; i++) {
             for (let j = 0; j < distances[i].length; j++) {
                 const { kms, minutes } = distances[i][j];
-                graph.push({ start: i, end: j, weight: kms });
+                graph.push({ start: i, end: j, weight: kms, minutes });
             }
         }
     
         return graph;
     };
     
+    
     const applyPrimAlgorithm = (graph: Edge[]): Edge[] => {
         const visited: boolean[] = Array(graph.length).fill(false);
         const result: Edge[] = [];
         const priorityQueue: Edge[] = [];
+        let totalMinutes = 0;
     
         // Bắt đầu từ đỉnh 0 (có thể chọn bất kỳ đỉnh nào)
-        priorityQueue.push({ start: 0, end: 0, weight: 0 });
+        priorityQueue.push({ start: 0, end: 0, weight: 0, minutes: 0 });
     
         while (priorityQueue.length > 0) {
             priorityQueue.sort((a, b) => a.weight - b.weight);
-            const { start, end, weight } = priorityQueue.shift()!;
+            const { start, end, weight, minutes } = priorityQueue.shift()!;
     
             if (!visited[end]) {
                 visited[end] = true;
-                result.push({ start, end, weight });
+                result.push({ start, end, weight, minutes });
+                totalMinutes += minutes;
     
                 // Thêm các đỉnh kề chưa được thăm vào hàng đợi ưu tiên
                 for (const edge of graph.filter(e => e.start === end && !visited[e.end])) {
@@ -219,8 +224,12 @@ export const RightSidebar = () => {
             }
         }
     
+        setTotalMinutes(totalMinutes); // Cập nhật tổng thời gian
+    
         return result;
     };
+    
+    
 
 
     return (
@@ -288,12 +297,15 @@ export const RightSidebar = () => {
                         {primResult.map((edge) => (
                             edge.start !== edge.end && (
                                 <li key={`${edge.start}-${edge.end}`}>
-                                    {`${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms`}
+                                    {`${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms, ${edge.minutes} minutes`}
                                 </li>
                             )
                         ))}
                         </ul>
-                        <p>Tổng Chiều Dài: {totalDistance.toFixed(2)} kms</p>
+                        <p>
+                            Tổng Chiều Dài: {totalDistance.toFixed(2)} kms
+                            - Tổng Thời Gian: {totalMinutes} phút
+                        </p>
                     </div>
                 </div>
                 
