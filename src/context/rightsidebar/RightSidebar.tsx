@@ -80,17 +80,14 @@ export const RightSidebar = () => {
         try {
             const distances = await calculateDistances();
             const graph = buildGraphFromDistances(distances);
-            const primResult = applyPrimAlgorithm(graph);
-            setPrimResult(primResult);
-            console.log('Prim Result:', primResult);
-
-            setIsContentVisible(true);  // Hiển thị lộ trình khi tính toán xong
-
-            // tinh tong chieu dai lo trinh
-            setTotalDistance(prevTotalDistance => {
-                const total = primResult.reduce((sum, edge) => sum + edge.weight, 0);
-                return total;
-            });
+            const dijkstraResult = applyDijkstraAlgorithm(graph, 0); // Bắt đầu từ đỉnh 0
+            setPrimResult(dijkstraResult);
+            console.log('Dijkstra Result:', dijkstraResult);
+    
+            setIsContentVisible(true); // Hiển thị lộ trình khi tính toán xong
+    
+            // Tính tổng thời gian
+            setTotalMinutes(dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0));
         } catch (error) {
             console.error('Error calculating distances:', error);
         }
@@ -191,35 +188,69 @@ export const RightSidebar = () => {
         for (let i = 0; i < distances.length; i++) {
             for (let j = 0; j < distances[i].length; j++) {
                 const { kms, minutes } = distances[i][j];
-                graph.push({ start: i, end: j, weight: kms, minutes });
+                
+                // Kiểm tra xem đỉnh xuất phát và đỉnh đích có giống nhau hay không
+                if (i !== j) {
+                    graph.push({ start: i, end: j, weight: kms, minutes });
+                }
             }
         }
     
         return graph;
     };
     
-    
-    const applyPrimAlgorithm = (graph: Edge[]): Edge[] => {
-        const visited: boolean[] = Array(graph.length).fill(false);
+    const applyDijkstraAlgorithm = (graph: Edge[], startVertex: number): Edge[] => {
         const result: Edge[] = [];
-        const priorityQueue: Edge[] = [];
+        const distances: number[] = Array(graph.length).fill(Number.POSITIVE_INFINITY);
+        const visited: boolean[] = Array(graph.length).fill(false);
         let totalMinutes = 0;
     
-        // Bắt đầu từ đỉnh 0 (có thể chọn bất kỳ đỉnh nào)
-        priorityQueue.push({ start: 0, end: 0, weight: 0, minutes: 0 });
+        distances[startVertex] = 0;
     
-        while (priorityQueue.length > 0) {
-            priorityQueue.sort((a, b) => a.weight - b.weight);
-            const { start, end, weight, minutes } = priorityQueue.shift()!;
+        while (result.length < graph.length) {
+            let minDistance = Number.POSITIVE_INFINITY;
+            let minIndex = -1;
     
-            if (!visited[end]) {
-                visited[end] = true;
-                result.push({ start, end, weight, minutes });
-                totalMinutes += minutes;
+            // Tìm cạnh kề nhỏ nhất
+            for (let i = 0; i < graph.length; i++) {
+                if (!visited[i] && distances[i] < minDistance) {
+                    minDistance = distances[i];
+                    minIndex = i;
+                }
+            }
     
-                // Thêm các đỉnh kề chưa được thăm vào hàng đợi ưu tiên
-                for (const edge of graph.filter(e => e.start === end && !visited[e.end])) {
-                    priorityQueue.push(edge);
+            if (minIndex === -1) {
+                // Không tìm thấy đỉnh không thăm và có trọng số nhỏ nhất, dừng lại
+                break;
+            }
+    
+            visited[minIndex] = true;
+    
+            // Tìm cạnh kề nhỏ nhất (không tính cạnh đến chính nó)
+            const minEdges = graph.filter((e) => e.start === minIndex && e.end !== minIndex);
+    
+            if (minEdges.length > 0) {
+                const minEdge = minEdges.reduce((prev, current) => {
+                    return prev.minutes < current.minutes ? prev : current;
+                });
+    
+                // Thêm cạnh vào kết quả
+                result.push(minEdge);
+    
+                totalMinutes += minEdge.minutes;
+    
+                // Bỏ đỉnh bắt đầu ra khỏi đồ thị
+                graph = graph.filter((e) => e.start !== minEdge.start || e.end !== minEdge.end);
+                // Đỉnh của cạnh kề tìm được trở thành đỉnh bắt đầu tiếp theo
+                startVertex = minEdge.end;
+    
+                // Cập nhật các cạnh kề của đỉnh vừa thăm
+                for (const edge of graph.filter((e) => e.start === startVertex && !visited[e.end])) {
+                    const newDistance = distances[minIndex] + edge.minutes;
+    
+                    if (newDistance < distances[edge.end]) {
+                        distances[edge.end] = newDistance;
+                    }
                 }
             }
         }
@@ -228,7 +259,6 @@ export const RightSidebar = () => {
     
         return result;
     };
-    
     
 
 
