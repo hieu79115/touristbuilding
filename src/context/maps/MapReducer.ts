@@ -1,5 +1,4 @@
 //@ts-ignore
-// eslint-disable-next-line import/no-webpack-loader-syntax
 import { Map, Marker } from 'mapbox-gl';
 import { MapStateProps } from './MapProvider';
 import { Feature } from '../../interfaces/places';
@@ -14,16 +13,16 @@ type MapReducerAction =
           payload: Marker[];
       }
     | {
-          type: 'setSelectedMarker'; // Thêm dòng này
-          payload: Marker | null; // Thêm dòng này
+          type: 'setSelectedMarker';
+          payload: Marker | null;
       }
     | {
-          type: 'addFeatureToSelection'; // Thêm dòng này
-          payload: Feature; // Thêm dòng này
+          type: 'addFeatureToSelection';
+          payload: Feature;
       }
     | {
-          type: 'addPlaceToList'; // Thêm dòng này
-          payload: Feature[]; // Thêm dòng này
+          type: 'addPlaceToList';
+          payload: Feature[];
       }
     | {
           type: 'setListPlaces';

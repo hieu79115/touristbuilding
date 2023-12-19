@@ -3,8 +3,8 @@ import { MapContext, PlacesContext } from '../context';
 import { Feature } from '../interfaces/places';
 
 export const SearchResults = () => {
-    const { places, isLoadingPlaces, userLocation } = useContext(PlacesContext);
-    const { map, getRouteBetweenPoints } = useContext(MapContext);
+    const { places, isLoadingPlaces } = useContext(PlacesContext);
+    const { map } = useContext(MapContext);
 
     const [active, setActive] = useState('');
 
@@ -15,12 +15,6 @@ export const SearchResults = () => {
             zoom: 14,
             center: [lng, lat],
         });
-    };
-
-    const getRoute = async (place: Feature) => {
-        if (!userLocation) return;
-        const [lng, lat] = place.center;
-        getRouteBetweenPoints(userLocation, [lng, lat]);
     };
 
     if (isLoadingPlaces) return <LoadingPlaces />;
@@ -40,17 +34,6 @@ export const SearchResults = () => {
                 >
                     <h6>{place.text_es}</h6>
                     <p style={{ fontSize: 10 }}>{place.place_name}</p>
-
-                    {/* <button
-                        onClick={() => getRoute(place)}
-                        className={`btn btn-sm ${
-                            active === place.id
-                                ? 'btn-outline-light'
-                                : 'btn-outline-primary'
-                        }`}
-                    >
-                        <i className="fas fa-directions"></i>
-                    </button> */}
                 </li>
             ))}
         </ul>

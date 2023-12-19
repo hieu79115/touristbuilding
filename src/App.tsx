@@ -2,7 +2,9 @@ import React from 'react';
 import { MapProvider, PlacesProvider } from './context';
 import { HomeScreen } from './screens';
 
-export const App = () => {
+interface AppProps {}
+
+export const App: React.FC<AppProps> = () => {
     return (
         <PlacesProvider>
             <MapProvider>
@@ -11,5 +13,3 @@ export const App = () => {
         </PlacesProvider>
     );
 };
-
-export default App;

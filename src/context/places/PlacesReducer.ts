@@ -1,4 +1,3 @@
-import { Marker } from 'mapbox-gl';
 import { Feature } from '../../interfaces/places';
 import { PlacesStateProps } from './PlacesProvider';
 

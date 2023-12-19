@@ -1,15 +1,11 @@
-// Lo que guardamos en memoria
 //@ts-ignore
-// eslint-disable-next-line import/no-webpack-loader-syntax
-import { AnySourceData, LngLatBounds, Map, Marker, Popup } from 'mapbox-gl';
-import React, { useContext, useEffect, useReducer, useState } from 'react';
+import { Map, Marker, Popup } from 'mapbox-gl';
+import React, { useContext, useEffect, useReducer } from 'react';
 import { PlacesContext } from '..';
-import { directionsApi, reverseLookupApi } from '../../apis';
-import { DirectionsResponse } from '../../interfaces/directions';
+import { reverseLookupApi } from '../../apis';
 import { MapContext } from './MapContext';
 import { mapReducer } from './MapReducer';
-import { placesReducer } from '../places/PlacesReducer';
-import { Feature, PlacesResponse } from '../../interfaces/places';
+import { Feature } from '../../interfaces/places';
 
 export interface MapStateProps {
     isMapReady: boolean;
@@ -35,8 +31,6 @@ export const MapProvider = ({ children }: Props) => {
     const [state, dispatch] = useReducer(mapReducer, INITIAL_STATE);
     const { places } = useContext(PlacesContext);
     const { markers, map } = state;
-    const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
-    // const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
 
     const reverseLookup = async (latitude: number, longitude: number) => {
         console.log(latitude, longitude);
@@ -45,12 +39,9 @@ export const MapProvider = ({ children }: Props) => {
                 `/${longitude},${latitude}.json`
             );
 
-            // console.log(response.data.features);
-
             const newPlaces: Feature[] = response.data.features;
             console.log('List places:');
             console.log(listPlaces);
-            // Kiểm tra xem phần tử cuối cùng có giống với điểm thêm không
             const isDuplicate =
                 listPlaces.length > 0 &&
                 listPlaces[listPlaces.length - 1].center[0] ===
@@ -59,7 +50,6 @@ export const MapProvider = ({ children }: Props) => {
                     newPlaces[0].center[1];
 
             if (!isDuplicate) {
-                // Nếu không giống, thêm vào danh sách và cập nhật state
                 dispatch({ type: 'addPlaceToList', payload: newPlaces });
                 listPlaces = [...listPlaces, ...newPlaces];
             }
@@ -73,17 +63,12 @@ export const MapProvider = ({ children }: Props) => {
 
     const updateListPlaces = (newListPlaces: Feature[]) => {
         console.log('Updating list places in MapProvider:', newListPlaces);
-        // Cập nhật state của MapProvider ở đây...
-        //remove listPlaces marker
         listPlaces.forEach((place) => {
-            const [lng, lat] = place.center;
-
             markers.forEach((marker) => {
                 marker.remove();
             });
         });
         listPlaces = newListPlaces;
-        //add new listPlaces marker
         newListPlaces.forEach((place) => {
             const [lng, lat] = place.center;
 
@@ -111,10 +96,6 @@ export const MapProvider = ({ children }: Props) => {
     });
 
     useEffect(() => {
-        console.log('ListPlaces updated:', listPlaces);
-    }, [listPlaces]);
-
-    useEffect(() => {
         const newMarkers: Marker[] = [];
         for (const place of places) {
             const [lng, lat] = place.center;
@@ -133,8 +114,6 @@ export const MapProvider = ({ children }: Props) => {
                 .addTo(map!);
 
             newMarkers.push(newMarker);
-
-            setSelectedMarker(newMarker);
         }
 
         clearMarkers();
@@ -160,9 +139,6 @@ export const MapProvider = ({ children }: Props) => {
             .setPopup(popup)
             .addTo(map!);
 
-        // Ghi nhớ newMarker trong local state
-        setSelectedMarker(newMarker);
-
         // Kiểm tra xem có marker nào ở gần không
         const nearbyMarker = markers.find((m) => {
             const newMarkerLngLat = newMarker.getLngLat();
@@ -185,15 +161,12 @@ export const MapProvider = ({ children }: Props) => {
             previousMarker?.remove();
             newMarker = nearbyMarker;
         } else {
-            // Hiển thị popup cho marker mới
             newMarker.togglePopup();
 
-            // Xóa marker trước đó nếu có
             if (previousMarker) {
                 previousMarker.remove();
             }
 
-            // Lưu marker mới vào biến previousMarker
             previousMarker = newMarker;
             console.log('Marker added!');
             console.log(newMarker.getLngLat());
@@ -202,12 +175,9 @@ export const MapProvider = ({ children }: Props) => {
         const customButton = document.getElementById('customButton');
         if (customButton) {
             customButton.addEventListener('click', () => {
-                // console.log(newMarker.getLngLat());
                 const lng = newMarker.getLngLat().lng;
                 const lat = newMarker.getLngLat().lat;
-                // console.log('Button clicked!');
                 reverseLookup(lat, lng);
-                // console.log('List Places:', listPlaces);
             });
         }
     };
@@ -217,93 +187,26 @@ export const MapProvider = ({ children }: Props) => {
     };
 
     useEffect(() => {
-        // ...
-
         map?.on('click', handleClickOnMap);
 
         return () => {
-            // Hủy đăng ký sự kiện khi component bị unmount
             map?.off('click', handleClickOnMap);
         };
     });
 
     const setMap = (map: Map) => {
-        const myLocationPopup = new Popup({}).setHTML(`<h1>My Location</h1>`);
+        // const myLocationPopup = new Popup({}).setHTML(`<h1>My Location</h1>`);
 
         new Marker({
             color: 'red',
         })
             .setLngLat(map.getCenter())
-            .addTo(map)
-            .setPopup(myLocationPopup);
+            .addTo(map);
+        // .setPopup(myLocationPopup);
 
         dispatch({
             type: 'setMap',
             payload: map,
-        });
-    };
-
-    const getRouteBetweenPoints = async (
-        start: [number, number],
-        end: [number, number]
-    ) => {
-        const resp = await directionsApi.get<DirectionsResponse>(
-            `/${start.join(',')};${end.join(',')}`
-        );
-
-        const { distance, duration, geometry } = resp.data.routes[0];
-        const { coordinates } = geometry;
-
-        let kms = distance / 1000;
-        kms = Math.round(kms * 100);
-        kms /= 100;
-
-        const minutes = Math.floor(duration / 60);
-
-        const bounds = new LngLatBounds(start, start);
-        for (let coord of coordinates) {
-            const newCoord: [number, number] = [coord[0], coord[1]];
-            bounds.extend(newCoord);
-        }
-
-        console.log(kms, minutes);
-
-        map?.fitBounds(bounds, { padding: 200 });
-
-        const sourceData: AnySourceData = {
-            type: 'geojson',
-            data: {
-                type: 'FeatureCollection',
-                features: [
-                    {
-                        type: 'Feature',
-                        properties: {},
-                        geometry: {
-                            type: 'LineString',
-                            coordinates,
-                        },
-                    },
-                ],
-            },
-        };
-        const sourceId = 'route';
-        if (map?.getLayer(sourceId)) {
-            map.removeLayer(sourceId);
-            map.removeSource(sourceId);
-        }
-
-        map?.addSource(sourceId, sourceData).addLayer({
-            id: sourceId,
-            type: 'line',
-            source: sourceId,
-            layout: {
-                'line-cap': 'round',
-                'line-join': 'round',
-            },
-            paint: {
-                'line-color': '#3b9ddd',
-                'line-width': 4,
-            },
         });
     };
 
@@ -312,7 +215,6 @@ export const MapProvider = ({ children }: Props) => {
             value={{
                 ...state,
                 setMap,
-                getRouteBetweenPoints,
                 updateListPlaces,
             }}
         >

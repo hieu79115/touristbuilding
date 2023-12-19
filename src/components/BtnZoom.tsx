@@ -27,6 +27,7 @@ export const BtnZoom = () => {
                 className="btn btn-primary"
                 onClick={handleZoomIn}
                 style={{ marginRight: '5px', borderRadius: '50%' }}
+                title="Zoom In"
             >
                 <i className="fas fa-search-plus" />
             </button>
@@ -34,6 +35,7 @@ export const BtnZoom = () => {
                 className="btn btn-primary"
                 onClick={handleZoomOut}
                 style={{ borderRadius: '50%' }}
+                title="Zoom Out"
             >
                 <i className="fas fa-search-minus" />
             </button>

@@ -1,17 +1,17 @@
 .right-sidebar {
-    width: 300px; /* Đặt chiều rộng thanh bên phải */
+    width: 300px;
     height: 100vh;
     padding: 5px;
     background-color: #f0f0f0;
     position: fixed;
     top: 0;
-    right: -300px; /* Khi đóng, thanh bên phải sẽ ẩn bên phải */
+    right: -300px;
     transition: right 0.4s ease;
     z-index: 1001;
 }
 
 .right-sidebar.open {
-    right: 0; /* Khi mở, thanh bên phải sẽ dịch ra bên trái */
+    right: 0;
 }
 
 .toggle-button {
@@ -19,21 +19,20 @@
     top: 50%;
     right: 10px;
     border-radius: 15px 0 0 15px;
-    background-color: #FFC47E;
+    background-color: #ffc47e;
     z-index: 1002;
 }
 
-.toggle-button:hover{
+.toggle-button:hover {
     background-color: rgb(70, 255, 138);
 }
 
-/* Hiệu ứng mở nút khi thanh bên phải mở */
 .toggle-button.open {
     right: 310px;
     transition: right 0.3s ease;
 }
 
-.toggle-button.open:hover{
+.toggle-button.open:hover {
     background-color: rgb(255, 79, 70);
 }
 
@@ -42,10 +41,6 @@ ul {
     cursor: pointer;
     padding: 0;
 }
-
-/* li {
-    margin-bottom: 10px;
-} */
 
 .container ul:hover {
     color: #007bff;
@@ -63,14 +58,14 @@ ul {
     margin-left: auto;
 }
 
-.delete-button{
+.delete-button {
     background-color: transparent;
     border: none;
     width: 30px;
     height: 30px;
 }
 
-.delete-button:hover{
+.delete-button:hover {
     background-color: #f19292;
 }
 
@@ -83,12 +78,12 @@ ul {
 
 .floating-button {
     transform: translate(70%, -50%);
-    transition: transform 0.3s ease; 
+    transition: transform 0.3s ease;
     background-color: rgb(227, 224, 224);
     border-radius: 10px;
 }
 
-.floating-button:hover{
+.floating-button:hover {
     background-color: rgb(70, 255, 138);
     transform: translate(70%, -50%) scale(1.1);
 }
@@ -118,11 +113,11 @@ ul {
     width: 40px;
     height: 37px;
     position: absolute;
-    top: 10px; 
+    top: 10px;
     right: 10px;
 }
 
-.close-button:hover{
+.close-button:hover {
     background-color: #f95b5b;
 }
 

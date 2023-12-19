@@ -1,4 +1,4 @@
-import Reat, { useContext, useRef } from 'react';
+import React, { useContext, useRef } from 'react';
 import { SearchResults } from '.';
 import { PlacesContext } from '../context';
 

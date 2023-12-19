@@ -26,6 +26,7 @@ export const BtnMyLocation = () => {
                 zIndex: '999',
                 borderRadius: '50%',
             }}
+            title="My Location"
         >
             <i className="fas fa-map-marker-alt" />
         </button>
