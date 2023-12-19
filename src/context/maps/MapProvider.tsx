@@ -139,13 +139,16 @@ export const MapProvider = ({ children }: Props) => {
             .setPopup(popup)
             .addTo(map!);
 
+        const zoom = map?.getZoom();
+        console.log('Zoom:', zoom);
+
         // Kiểm tra xem có marker nào ở gần không
         const nearbyMarker = markers.find((m) => {
             const newMarkerLngLat = newMarker.getLngLat();
             const mLngLat = m.getLngLat();
 
             // Đặt ngưỡng sai số chấp nhận được (đơn vị độ)
-            const threshold = 0.005;
+            const threshold = 20 / Math.pow(2, zoom!);
 
             const isCloseEnough =
                 Math.abs(newMarkerLngLat.lng - mLngLat.lng) < threshold &&
@@ -168,8 +171,6 @@ export const MapProvider = ({ children }: Props) => {
             }
 
             previousMarker = newMarker;
-            console.log('Marker added!');
-            console.log(newMarker.getLngLat());
         }
 
         const customButton = document.getElementById('customButton');
