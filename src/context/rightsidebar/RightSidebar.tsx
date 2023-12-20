@@ -5,6 +5,7 @@ import { Feature } from '../../interfaces/places';
 import { directionsApi } from '../../apis';
 import { DirectionsResponse } from '../../interfaces/directions';
 import { Edge, Route } from '../../interfaces/graph';
+import { SyncLoader } from 'react-spinners';
 
 export const RightSidebar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +23,11 @@ export const RightSidebar = () => {
     const [totalDistance, setTotalDistance] = useState<number>(0);
     const [totalMinutes, setTotalMinutes] = useState<number>(0);
     const [isOverlayVisible, setIsOverlayVisible] = useState(false);
+
+    const [isLoading, setIsLoading] = useState(false);
+
+    const isSideBarActive = isOpen && !isContentVisible;
+    const isFloatingButtonActive = isContentVisible;
 
     const handleDragStart = (
         e: React.DragEvent<HTMLUListElement>,
@@ -93,6 +99,7 @@ export const RightSidebar = () => {
 
     const handleFloatingButtonClick = async () => {
         try {
+            setIsLoading(true);
             const distances = await calculateDistances();
             const completeGraph = buildCompleteGraph(
                 distances,
@@ -113,6 +120,7 @@ export const RightSidebar = () => {
             setTotalDistance(
                 dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
             );
+            setIsLoading(false);
         } catch (error) {
             console.error('Error calculating distances:', error);
         }
@@ -272,7 +280,9 @@ export const RightSidebar = () => {
         <>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`toggle-button ${isOpen ? 'open' : ''}`}
+                className={`toggle-button ${
+                    isOpen ? 'open open-transition' : ''
+                }, ${isContentVisible ? 'disabled' : ''}`}
             >
                 {isOpen ? 'Close Sidebar' : 'Open Sidebar'}
             </button>
@@ -281,12 +291,12 @@ export const RightSidebar = () => {
                 className={`right-sidebar ${isOpen ? 'open' : 'closed'}`}
                 ref={sidebarContentRef}
             >
-                <h3>Danh sách địa điểm</h3>
+                <h3 style={{ margin: '1rem' }}>Danh sách địa điểm</h3>
 
                 <div
                     className={`container ${
-                        isContentVisible ? 'container-disabled' : ''
-                    }`}
+                        isContentVisible ? 'disabled' : ''
+                    } container-scrollable`}
                 >
                     {selectedFeatures.map((feature, index) => (
                         <ul
@@ -324,9 +334,16 @@ export const RightSidebar = () => {
 
                 <button
                     onClick={handleFloatingButtonClick}
-                    className="floating-button"
+                    className={`floating-button ${
+                        isOverlayVisible ? 'disabled' : ''
+                    }`}
                 >
-                    Floating Button
+                    {isLoading ? ( // Nếu đang loading, hiển thị SpinLoader
+                        <SyncLoader color="rgba(0, 0, 0, 1)" size={4} />
+                    ) : (
+                        // Nếu không loading, hiển thị nội dung bình thường
+                        'Floating Button'
+                    )}
                 </button>
 
                 {isContentVisible && (
