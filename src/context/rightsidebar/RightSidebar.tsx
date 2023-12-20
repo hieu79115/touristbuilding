@@ -79,26 +79,23 @@ export const RightSidebar = () => {
     const handleFloatingButtonClick = async () => {
         try {
             const distances = await calculateDistances();
-            const graph = buildGraphFromDistances(distances);
-            const primResult = applyPrimAlgorithm(graph);
-            setPrimResult(primResult);
-            console.log('Prim Result:', primResult);
-
-            setIsContentVisible(true); // Hiển thị lộ trình khi tính toán xong
-
-            // tinh tong chieu dai lo trinh
-            setTotalDistance((prevTotalDistance) => {
-                const total = primResult.reduce(
-                    (sum, edge) => sum + edge.weight,
-                    0
-                );
-                return total;
-            });
+            // Sử dụng hàm buildCompleteGraph để xây dựng đồ thị từ khoảng cách
+            const completeGraph = buildCompleteGraph(distances, selectedFeatures);
+            const dijkstraResult = applyDijkstraAlgorithm(completeGraph, 0);
+    
+            setPrimResult(dijkstraResult);
+            console.log('Dijkstra Result:', dijkstraResult);
+    
+            setIsContentVisible(true);
+    
+            setTotalMinutes(
+                dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
+            );
         } catch (error) {
             console.error('Error calculating distances:', error);
         }
     };
-
+            
     const handleCloseButtonClick = () => {
         setIsContentVisible(false);
     };
@@ -111,7 +108,7 @@ export const RightSidebar = () => {
     const getRouteBetweenPoints = async (
         start: [number, number],
         end: [number, number]
-    ): Promise<RouteResult | null> => {
+    ): Promise<RouteResult> => {
         try {
             const resp = await directionsApi.get<DirectionsResponse>(
                 `/${start.join(',')};${end.join(',')}`
@@ -120,15 +117,15 @@ export const RightSidebar = () => {
             const route = resp.data.routes[0];
 
             if (!route) {
-                console.error('No route found');
-                return null;
+                console.error("No route found");
+                // Trả về giá trị mặc định khi không tìm thấy tuyến đường
+                return { kms: 0, minutes: 0 };
             }
 
             const { distance, duration } = route;
 
             let kms = distance / 1000;
             kms = Math.round(kms * 100) / 100; // Sửa lỗi chia 100
-
             const minutes = Math.floor(duration / 60);
 
             console.log('Route:', route);
@@ -137,18 +134,20 @@ export const RightSidebar = () => {
 
             return { kms, minutes };
         } catch (error) {
-            console.error('Error fetching route:', error);
-            return null;
+            console.error("Error fetching route:", error);
+            // Trả về giá trị mặc định khi có lỗi
+            return { kms: 0, minutes: 0 };
         }
     };
+    
+    
 
     const calculateDistances = async (): Promise<RouteResult[][]> => {
         const distances: RouteResult[][] = [];
-
         for (let i = 0; i < selectedFeatures.length; i++) {
             const element: RouteResult[] = [];
             for (let j = 0; j < selectedFeatures.length; j++) {
-                // Gọi hàm getRouteBetweenPoints với tọa độ của điểm bắt đầu và điểm kết thúc
+                // Thay đổi từ number[] sang [number, number]
                 const startCoordinates: [number, number] = [
                     selectedFeatures[i].center[0],
                     selectedFeatures[i].center[1],
@@ -164,34 +163,21 @@ export const RightSidebar = () => {
                         startCoordinates,
                         endCoordinates
                     );
-
-                    // Kiểm tra giá trị trả về của hàm getRouteBetweenPoints
-                    if (routeResult !== null) {
-                        // Nếu có giá trị trả về, thêm giá trị kms vào mảng element
-                        element.push(routeResult);
-                        console.log('Route calculation complete.');
-                        console.log(element);
-                    } else {
-                        // Xử lý trường hợp không tìm thấy tuyến đường
-                        console.error(
-                            'No route found between',
-                            startCoordinates,
-                            'and',
-                            endCoordinates
-                        );
-                        // Thêm một giá trị mặc định vào mảng element, hoặc bạn có thể thêm bất kỳ giá trị nào khác tùy thuộc vào logic của ứng dụng
-                        element.push({ kms: 0, minutes: 0 });
-                    }
+    
+                    element.push(routeResult);
+                    console.log("Route calculation complete.");
+                    console.log(element);
                 } catch (error) {
                     console.error('Error calculating route:', error);
                 }
             }
             distances.push(element);
         }
+    
         console.log(distances);
         return distances;
     };
-
+    
     interface Edge {
         start: number;
         end: number;
@@ -199,51 +185,98 @@ export const RightSidebar = () => {
         minutes: number;
     }
 
-    const buildGraphFromDistances = (distances: RouteResult[][]): Edge[] => {
+    const buildCompleteGraph = (
+        distances: RouteResult[][],
+        selectedFeatures: Feature[]
+    ): Edge[] => {
         const graph: Edge[] = [];
-
-        for (let i = 0; i < distances.length; i++) {
-            for (let j = 0; j < distances[i].length; j++) {
-                const { kms, minutes } = distances[i][j];
-                graph.push({ start: i, end: j, weight: kms, minutes });
-            }
-        }
-
+    
+        selectedFeatures.forEach((featureI, i) => {
+            selectedFeatures.forEach((featureJ, j) => {
+                if (i !== j) {
+                    const { kms, minutes } = distances[i][j];
+    
+                    graph.push({
+                        start: i,
+                        end: j,
+                        weight: kms,
+                        minutes,
+                    });
+                }
+            });
+        });
+    
         return graph;
     };
+    
 
-    const applyPrimAlgorithm = (graph: Edge[]): Edge[] => {
-        const visited: boolean[] = Array(graph.length).fill(false);
+    const applyDijkstraAlgorithm = (
+        graph: Edge[],
+        startVertex: number
+      ): Edge[] => {
         const result: Edge[] = [];
-        const priorityQueue: Edge[] = [];
+        const distances: number[] = Array(graph.length).fill(Number.POSITIVE_INFINITY);
+        const visited: Set<number> = new Set();
         let totalMinutes = 0;
-
-        // Bắt đầu từ đỉnh 0 (có thể chọn bất kỳ đỉnh nào)
-        priorityQueue.push({ start: 0, end: 0, weight: 0, minutes: 0 });
-
-        while (priorityQueue.length > 0) {
-            priorityQueue.sort((a, b) => a.weight - b.weight);
-            const { start, end, weight, minutes } = priorityQueue.shift()!;
-
-            if (!visited[end]) {
-                visited[end] = true;
-                result.push({ start, end, weight, minutes });
-                totalMinutes += minutes;
-
-                // Thêm các đỉnh kề chưa được thăm vào hàng đợi ưu tiên
-                for (const edge of graph.filter(
-                    (e) => e.start === end && !visited[e.end]
-                )) {
-                    priorityQueue.push(edge);
-                }
+      
+        distances[startVertex] = 0;
+      
+        while (visited.size < graph.length) {
+          let minDistance = Number.POSITIVE_INFINITY;
+          let minIndex = -1;
+      
+          for (let i = 0; i < graph.length; i++) {
+            if (!visited.has(i) && distances[i] < minDistance) {
+              minDistance = distances[i];
+              minIndex = i;
             }
+          }
+      
+          if (minIndex === -1) {
+            break;
+          }
+      
+          visited.add(minIndex);
+      
+          for (const edge of graph.filter(
+            (e) => e.start === minIndex && !visited.has(e.end)
+          )) {
+            const newDistance = distances[minIndex] + edge.weight; // Sửa thành edge.weight
+      
+            if (newDistance < distances[edge.end]) {
+              distances[edge.end] = newDistance;
+            }
+          }
+      
+          const minEdge = graph
+            .filter(
+              (e) => e.start === minIndex && !visited.has(e.end)
+            )
+            .reduce(
+              (min, edge) =>
+                edge.weight < min.weight ? edge : min, // Sửa thành edge.weight
+              {
+                start: -1,
+                end: -1,
+                weight: Number.POSITIVE_INFINITY,
+                minutes: Number.POSITIVE_INFINITY,
+              }
+            );
+      
+          startVertex = minEdge.end;
+          if (minEdge.start !== -1) {
+            result.push(minEdge);
+      
+            totalMinutes += minEdge.minutes;
+          }
         }
-
-        setTotalMinutes(totalMinutes); // Cập nhật tổng thời gian
-
+      
+        setTotalMinutes(totalMinutes);
+        setTotalDistance(totalDistance);
         return result;
-    };
+      };
 
+      
     return (
         <>
             <button
