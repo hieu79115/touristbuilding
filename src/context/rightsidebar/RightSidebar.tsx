@@ -91,6 +91,10 @@ export const RightSidebar = () => {
             setTotalMinutes(
                 dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
             );
+
+            setTotalDistance(
+                dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
+            );
         } catch (error) {
             console.error('Error calculating distances:', error);
         }
@@ -209,7 +213,7 @@ export const RightSidebar = () => {
         return graph;
     };
 
-    const applyDijkstraAlgorithm = (
+      const applyDijkstraAlgorithm = (
         graph: Edge[],
         startVertex: number
       ): Edge[] => {
@@ -233,8 +237,11 @@ export const RightSidebar = () => {
         while (visited.size < graph.length) {
           visited.add(currentVertex);
       
+          // Tạo biến khác để lưu giữ giá trị của currentVertex
+          const currentVertexValue = currentVertex;
+      
           const availableEdges = graph.filter(
-            (edge) => edge.start === currentVertex && !visited.has(edge.end)
+            (edge) => edge.start === currentVertexValue && !visited.has(edge.end)
           );
       
           if (availableEdges.length > 0) {
@@ -263,6 +270,7 @@ export const RightSidebar = () => {
       
         return result;
       };
+      
       
 
 
