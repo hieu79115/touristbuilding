@@ -33,7 +33,6 @@ export const MapProvider = ({ children }: Props) => {
     const { markers, map } = state;
 
     const reverseLookup = async (latitude: number, longitude: number) => {
-        console.log(latitude, longitude);
         try {
             const response = await reverseLookupApi.get(
                 `/${longitude},${latitude}.json`
@@ -49,12 +48,8 @@ export const MapProvider = ({ children }: Props) => {
     };
 
     const updateListPlaces = (newListPlaces: Feature[]) => {
-        console.log('Updating list places in MapProvider:', newListPlaces);
-        listPlaces.forEach((place) => {
-            markers.forEach((marker) => {
-                marker.remove();
-            });
-        });
+        markers.forEach((marker) => marker.remove());
+
         listPlaces = newListPlaces;
         newListPlaces.forEach((place) => {
             const [lng, lat] = place.center;
@@ -115,10 +110,6 @@ export const MapProvider = ({ children }: Props) => {
         reverseLookup(lat, lng).then((result: Feature[]) => {
             const newPlace: Feature[] = result;
 
-            //kiem tra do chenh lech giua 2 diem
-            console.log('newPlace ', newPlace[0]);
-            console.log('possion ', [lng, lat]);
-
             let popupContent;
 
             if (
@@ -126,36 +117,40 @@ export const MapProvider = ({ children }: Props) => {
                 lat - newPlace[0].center[1] > 0.000000111
             ) {
                 popupContent = `
-                <h6>${newPlace[0].text}</h6>
-                <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
-                <button id="customButton">Add</button>
-            `;
+                    <h6>${newPlace[0].text}</h6>
+                    <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
+                    <button id="customButton">Add</button>`;
                 [lng, lat] = newPlace[0].center;
             } else {
                 popupContent = `
                 <h6>New Marker</h6>
-                <p>Lat: ${lat}, Lng: ${lng}</p>
-                <button id="customButton">Add</button>
-            `;
+                <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
+                <button id="customButton">Add</button>`;
+
+                let count = 1;
+                for (let i = 0; i < listPlaces.length; i++) {
+                    if (listPlaces[i].text.includes('New Marker')) {
+                        count++;
+                    }
+                }
+
+                newPlace[0].text = `New Marker ${count}`;
             }
 
-            const popup = new Popup().setHTML(popupContent);
+            const popup = new Popup().setHTML(popupContent ?? '');
 
             let newMarker = new Marker()
                 .setLngLat([lng, lat])
                 .setPopup(popup)
                 .addTo(map!);
 
-            map?.flyTo({ center: [lng, lat], zoom: 15 });
+            map?.flyTo({ center: [lng, lat] });
             const zoom = map?.getZoom();
-            console.log('Zoom:', zoom);
 
-            // Kiểm tra xem có marker nào ở gần không
             const nearbyMarker = markers.find((m) => {
                 const newMarkerLngLat = newMarker.getLngLat();
                 const mLngLat = m.getLngLat();
 
-                // Đặt ngưỡng sai số chấp nhận được (đơn vị độ)
                 const threshold = 0.000000111 / Math.pow(2, zoom!);
 
                 const isCloseEnough =
@@ -166,7 +161,6 @@ export const MapProvider = ({ children }: Props) => {
             });
 
             if (nearbyMarker) {
-                // Ưu tiên marker gần
                 nearbyMarker.togglePopup();
                 newMarker.remove();
                 previousMarker?.remove();
@@ -184,8 +178,6 @@ export const MapProvider = ({ children }: Props) => {
             const customButton = document.getElementById('customButton');
             if (customButton) {
                 customButton.addEventListener('click', () => {
-                    console.log('List places:');
-                    console.log(listPlaces);
                     const isDuplicate =
                         listPlaces.length > 0 &&
                         listPlaces[listPlaces.length - 1].center[0] ===
