@@ -33,26 +33,12 @@ export const MapProvider = ({ children }: Props) => {
     const { markers, map } = state;
 
     const reverseLookup = async (latitude: number, longitude: number) => {
-        console.log(latitude, longitude);
         try {
             const response = await reverseLookupApi.get(
                 `/${longitude},${latitude}.json`
             );
 
             const newPlaces: Feature[] = response.data.features;
-            console.log('List places:');
-            console.log(listPlaces);
-            const isDuplicate =
-                listPlaces.length > 0 &&
-                listPlaces[listPlaces.length - 1].center[0] ===
-                    newPlaces[0].center[0] &&
-                listPlaces[listPlaces.length - 1].center[1] ===
-                    newPlaces[0].center[1];
-
-            if (!isDuplicate) {
-                dispatch({ type: 'addPlaceToList', payload: newPlaces });
-                listPlaces = [...listPlaces, ...newPlaces];
-            }
 
             return newPlaces;
         } catch (error) {
@@ -62,12 +48,8 @@ export const MapProvider = ({ children }: Props) => {
     };
 
     const updateListPlaces = (newListPlaces: Feature[]) => {
-        console.log('Updating list places in MapProvider:', newListPlaces);
-        listPlaces.forEach((place) => {
-            markers.forEach((marker) => {
-                marker.remove();
-            });
-        });
+        markers.forEach((marker) => marker.remove());
+
         listPlaces = newListPlaces;
         newListPlaces.forEach((place) => {
             const [lng, lat] = place.center;
@@ -124,63 +106,92 @@ export const MapProvider = ({ children }: Props) => {
     }, [places]);
 
     const handleClickOnMap = (e: mapboxgl.MapMouseEvent) => {
-        const { lng, lat } = e.lngLat;
+        let { lng, lat } = e.lngLat;
+        reverseLookup(lat, lng).then((result: Feature[]) => {
+            const newPlace: Feature[] = result;
 
-        const popupContent = `
-                <h6>Custom Marker</h6>
-                <p>Lat: ${lat}, Lng: ${lng}</p>
-                <button id="customButton">Click me</button>
-            `;
+            let popupContent;
 
-        const popup = new Popup().setHTML(popupContent);
+            if (
+                lng - newPlace[0].center[0] > 0.000000111 &&
+                lat - newPlace[0].center[1] > 0.000000111
+            ) {
+                popupContent = `
+                    <h6>${newPlace[0].text}</h6>
+                    <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
+                    <button id="customButton">Add</button>`;
+                [lng, lat] = newPlace[0].center;
+            } else {
+                popupContent = `
+                <h6>New Marker</h6>
+                <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
+                <button id="customButton">Add</button>`;
 
-        let newMarker = new Marker()
-            .setLngLat([lng, lat])
-            .setPopup(popup)
-            .addTo(map!);
+                let count = 1;
+                for (let i = 0; i < listPlaces.length; i++) {
+                    if (listPlaces[i].text.includes('New Marker')) {
+                        count++;
+                    }
+                }
 
-        const zoom = map?.getZoom();
-        console.log('Zoom:', zoom);
-
-        // Kiểm tra xem có marker nào ở gần không
-        const nearbyMarker = markers.find((m) => {
-            const newMarkerLngLat = newMarker.getLngLat();
-            const mLngLat = m.getLngLat();
-
-            // Đặt ngưỡng sai số chấp nhận được (đơn vị độ)
-            const threshold = 20 / Math.pow(2, zoom!);
-
-            const isCloseEnough =
-                Math.abs(newMarkerLngLat.lng - mLngLat.lng) < threshold &&
-                Math.abs(newMarkerLngLat.lat - mLngLat.lat) < threshold;
-
-            return isCloseEnough;
-        });
-
-        if (nearbyMarker) {
-            // Ưu tiên marker gần
-            nearbyMarker.togglePopup();
-            newMarker.remove();
-            previousMarker?.remove();
-            newMarker = nearbyMarker;
-        } else {
-            newMarker.togglePopup();
-
-            if (previousMarker) {
-                previousMarker.remove();
+                newPlace[0].text = `New Marker ${count}`;
             }
 
-            previousMarker = newMarker;
-        }
+            const popup = new Popup().setHTML(popupContent ?? '');
 
-        const customButton = document.getElementById('customButton');
-        if (customButton) {
-            customButton.addEventListener('click', () => {
-                const lng = newMarker.getLngLat().lng;
-                const lat = newMarker.getLngLat().lat;
-                reverseLookup(lat, lng);
+            let newMarker = new Marker()
+                .setLngLat([lng, lat])
+                .setPopup(popup)
+                .addTo(map!);
+
+            map?.flyTo({ center: [lng, lat] });
+            const zoom = map?.getZoom();
+
+            const nearbyMarker = markers.find((m) => {
+                const newMarkerLngLat = newMarker.getLngLat();
+                const mLngLat = m.getLngLat();
+
+                const threshold = 0.000000111 / Math.pow(2, zoom!);
+
+                const isCloseEnough =
+                    Math.abs(newMarkerLngLat.lng - mLngLat.lng) < threshold &&
+                    Math.abs(newMarkerLngLat.lat - mLngLat.lat) < threshold;
+
+                return isCloseEnough;
             });
-        }
+
+            if (nearbyMarker) {
+                nearbyMarker.togglePopup();
+                newMarker.remove();
+                previousMarker?.remove();
+                newMarker = nearbyMarker;
+            } else {
+                newMarker.togglePopup();
+
+                if (previousMarker) {
+                    previousMarker.remove();
+                }
+
+                previousMarker = newMarker;
+            }
+
+            const customButton = document.getElementById('customButton');
+            if (customButton) {
+                customButton.addEventListener('click', () => {
+                    const isDuplicate =
+                        listPlaces.length > 0 &&
+                        listPlaces[listPlaces.length - 1].center[0] ===
+                            newPlace[0].center[0] &&
+                        listPlaces[listPlaces.length - 1].center[1] ===
+                            newPlace[0].center[1];
+
+                    if (!isDuplicate) {
+                        dispatch({ type: 'addPlaceToList', payload: newPlace });
+                        listPlaces = [...listPlaces, ...newPlace];
+                    }
+                });
+            }
+        });
     };
 
     const clearMarkers = () => {
