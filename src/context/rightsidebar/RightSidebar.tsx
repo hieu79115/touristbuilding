@@ -274,7 +274,7 @@ export const RightSidebar = () => {
         }
       
         setTotalMinutes(totalMinutes);
-      
+        setTotalDistance(totalDistance);
         return result;
       };
 
