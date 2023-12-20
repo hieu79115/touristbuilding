@@ -210,52 +210,54 @@ export const RightSidebar = () => {
     };
 
     const applyDijkstraAlgorithm = (
-  graph: Edge[],
-  startVertex: number
-): Edge[] => {
-  const result: Edge[] = [];
-  const visited: Set<number> = new Set();
-  let currentVertex = startVertex;
+        graph: Edge[],
+        startVertex: number
+            ): Edge[] => {
+                const result: Edge[] = [];
+                const visited: Set<number> = new Set();
+                let currentVertex = startVertex;
+                let totalWeight = 0;
 
-  while (visited.size < graph.length) {
-    visited.add(currentVertex);
+                while (visited.size < graph.length) {
+                    visited.add(currentVertex);
 
-    const availableEdges = graph.filter(
-      (edge) => edge.start === currentVertex && !visited.has(edge.end)
-    );
+                    const availableEdges = graph.filter(
+                        (edge) => edge.start === currentVertex && !visited.has(edge.end)
+                    );
 
-    if (availableEdges.length > 0) {
-      // Chọn cạnh ngắn nhất và thêm vào kết quả
-      const minEdge = availableEdges.reduce(
-        (min, edge) => (edge.weight < min.weight ? edge : min),
-        {
-          start: -1,
-          end: -1,
-          weight: Number.POSITIVE_INFINITY,
-          minutes: Number.POSITIVE_INFINITY,
-        }
-      );
+                    if (availableEdges.length > 0) {
+                    // Chọn cạnh ngắn nhất và thêm vào kết quả
+                        const minEdge = availableEdges.reduce(
+                            (min, edge) => (edge.weight < min.weight ? edge : min),
+                            {
+                            start: -1,
+                            end: -1,
+                            weight: Number.POSITIVE_INFINITY,
+                            minutes: Number.POSITIVE_INFINITY,
+                            }
+                        );
 
-      result.push(minEdge);
+                    result.push(minEdge);
+                    totalWeight += minEdge.weight;
+                    // Di chuyển đến đỉnh kết thúc của cạnh
+                    currentVertex = minEdge.end;
+                    
+                    } else {
+                    // Nếu không còn cạnh đi tiếp, chọn đỉnh chưa được ghé thăm làm điểm xuất phát
+                    const unvisitedVertices = graph
+                        .filter((edge) => !visited.has(edge.start))
+                        .map((edge) => edge.start);
 
-      // Di chuyển đến đỉnh kết thúc của cạnh
-      currentVertex = minEdge.end;
-    } else {
-      // Nếu không còn cạnh đi tiếp, chọn đỉnh chưa được ghé thăm làm điểm xuất phát
-      const unvisitedVertices = graph
-        .filter((edge) => !visited.has(edge.start))
-        .map((edge) => edge.start);
-
-      if (unvisitedVertices.length > 0) {
-        currentVertex = unvisitedVertices[0];
-      } else {
-        break; // Kết thúc nếu đã ghé thăm tất cả các điểm
-      }
-    }
-  }
-
-  return result;
-};
+                        if (unvisitedVertices.length > 0) {
+                            currentVertex = unvisitedVertices[0];
+                        } else {
+                            break; // Kết thúc nếu đã ghé thăm tất cả các điểm
+                        }
+                    }
+                }
+        setTotalDistance(totalWeight);        
+        return result;
+    };
 
 
       
