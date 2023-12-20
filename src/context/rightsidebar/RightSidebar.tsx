@@ -128,9 +128,9 @@ export const RightSidebar = () => {
             kms = Math.round(kms * 100) / 100; // Sửa lỗi chia 100
             const minutes = Math.floor(duration / 60);
 
-            console.log('Route:', route);
-            console.log('Kilometers:', kms);
-            console.log('Minutes:', minutes);
+            // console.log('Route:', route);
+            // console.log('Kilometers:', kms);
+            // console.log('Minutes:', minutes);
 
             return { kms, minutes };
         } catch (error) {
@@ -166,7 +166,7 @@ export const RightSidebar = () => {
     
                     element.push(routeResult);
                     console.log("Route calculation complete.");
-                    console.log(element);
+                    // console.log(element);
                 } catch (error) {
                     console.error('Error calculating route:', error);
                 }
@@ -208,73 +208,55 @@ export const RightSidebar = () => {
     
         return graph;
     };
-    
 
     const applyDijkstraAlgorithm = (
-        graph: Edge[],
-        startVertex: number
-      ): Edge[] => {
-        const result: Edge[] = [];
-        const distances: number[] = Array(graph.length).fill(Number.POSITIVE_INFINITY);
-        const visited: Set<number> = new Set();
-        let totalMinutes = 0;
-      
-        distances[startVertex] = 0;
-      
-        while (visited.size < graph.length) {
-          let minDistance = Number.POSITIVE_INFINITY;
-          let minIndex = -1;
-      
-          for (let i = 0; i < graph.length; i++) {
-            if (!visited.has(i) && distances[i] < minDistance) {
-              minDistance = distances[i];
-              minIndex = i;
-            }
-          }
-      
-          if (minIndex === -1) {
-            break;
-          }
-      
-          visited.add(minIndex);
-      
-          for (const edge of graph.filter(
-            (e) => e.start === minIndex && !visited.has(e.end)
-          )) {
-            const newDistance = distances[minIndex] + edge.weight; // Sửa thành edge.weight
-      
-            if (newDistance < distances[edge.end]) {
-              distances[edge.end] = newDistance;
-            }
-          }
-      
-          const minEdge = graph
-            .filter(
-              (e) => e.start === minIndex && !visited.has(e.end)
-            )
-            .reduce(
-              (min, edge) =>
-                edge.weight < min.weight ? edge : min, // Sửa thành edge.weight
-              {
-                start: -1,
-                end: -1,
-                weight: Number.POSITIVE_INFINITY,
-                minutes: Number.POSITIVE_INFINITY,
-              }
-            );
-      
-          startVertex = minEdge.end;
-          if (minEdge.start !== -1) {
-            result.push(minEdge);
-      
-            totalMinutes += minEdge.minutes;
-          }
+  graph: Edge[],
+  startVertex: number
+): Edge[] => {
+  const result: Edge[] = [];
+  const visited: Set<number> = new Set();
+  let currentVertex = startVertex;
+
+  while (visited.size < graph.length) {
+    visited.add(currentVertex);
+
+    const availableEdges = graph.filter(
+      (edge) => edge.start === currentVertex && !visited.has(edge.end)
+    );
+
+    if (availableEdges.length > 0) {
+      // Chọn cạnh ngắn nhất và thêm vào kết quả
+      const minEdge = availableEdges.reduce(
+        (min, edge) => (edge.weight < min.weight ? edge : min),
+        {
+          start: -1,
+          end: -1,
+          weight: Number.POSITIVE_INFINITY,
+          minutes: Number.POSITIVE_INFINITY,
         }
-      
-        setTotalMinutes(totalMinutes);
-        setTotalDistance(totalDistance);
-        return result;
-      };
+      );
+
+      result.push(minEdge);
+
+      // Di chuyển đến đỉnh kết thúc của cạnh
+      currentVertex = minEdge.end;
+    } else {
+      // Nếu không còn cạnh đi tiếp, chọn đỉnh chưa được ghé thăm làm điểm xuất phát
+      const unvisitedVertices = graph
+        .filter((edge) => !visited.has(edge.start))
+        .map((edge) => edge.start);
+
+      if (unvisitedVertices.length > 0) {
+        currentVertex = unvisitedVertices[0];
+      } else {
+        break; // Kết thúc nếu đã ghé thăm tất cả các điểm
+      }
+    }
+  }
+
+  return result;
+};
+
 
       
     return (
@@ -348,7 +330,7 @@ export const RightSidebar = () => {
                                             <li
                                                 key={`${edge.start}-${edge.end}`}
                                             >
-                                                {`${index}.  ${
+                                                {`${index+1}.  ${
                                                     selectedFeatures[edge.start]
                                                         .text
                                                 } -> ${
