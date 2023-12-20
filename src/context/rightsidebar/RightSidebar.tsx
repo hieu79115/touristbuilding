@@ -91,6 +91,10 @@ export const RightSidebar = () => {
             setTotalMinutes(
                 dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
             );
+
+            setTotalDistance(
+                dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
+            );
         } catch (error) {
             console.error('Error calculating distances:', error);
         }
@@ -128,9 +132,9 @@ export const RightSidebar = () => {
             kms = Math.round(kms * 100) / 100; // Sửa lỗi chia 100
             const minutes = Math.floor(duration / 60);
 
-            console.log('Route:', route);
-            console.log('Kilometers:', kms);
-            console.log('Minutes:', minutes);
+            // console.log('Route:', route);
+            // console.log('Kilometers:', kms);
+            // console.log('Minutes:', minutes);
 
             return { kms, minutes };
         } catch (error) {
@@ -166,7 +170,7 @@ export const RightSidebar = () => {
     
                     element.push(routeResult);
                     console.log("Route calculation complete.");
-                    console.log(element);
+                    // console.log(element);
                 } catch (error) {
                     console.error('Error calculating route:', error);
                 }
@@ -208,53 +212,42 @@ export const RightSidebar = () => {
     
         return graph;
     };
-    
 
-    const applyDijkstraAlgorithm = (
+      const applyDijkstraAlgorithm = (
         graph: Edge[],
         startVertex: number
       ): Edge[] => {
         const result: Edge[] = [];
-        const distances: number[] = Array(graph.length).fill(Number.POSITIVE_INFINITY);
         const visited: Set<number> = new Set();
-        let totalMinutes = 0;
+        let currentVertex = startVertex;
       
-        distances[startVertex] = 0;
+        // Định nghĩa hàm ngoại trọng vòng lặp
+        const chooseNextVertex = () => {
+          const unvisitedVertices = graph
+            .filter((edge) => !visited.has(edge.start))
+            .map((edge) => edge.start);
+      
+          if (unvisitedVertices.length > 0) {
+            currentVertex = unvisitedVertices[0];
+          } else {
+            return null; // Kết thúc nếu đã ghé thăm tất cả các điểm
+          }
+        };
       
         while (visited.size < graph.length) {
-          let minDistance = Number.POSITIVE_INFINITY;
-          let minIndex = -1;
+          visited.add(currentVertex);
       
-          for (let i = 0; i < graph.length; i++) {
-            if (!visited.has(i) && distances[i] < minDistance) {
-              minDistance = distances[i];
-              minIndex = i;
-            }
-          }
+          // Tạo biến khác để lưu giữ giá trị của currentVertex
+          const currentVertexValue = currentVertex;
       
-          if (minIndex === -1) {
-            break;
-          }
+          const availableEdges = graph.filter(
+            (edge) => edge.start === currentVertexValue && !visited.has(edge.end)
+          );
       
-          visited.add(minIndex);
-      
-          for (const edge of graph.filter(
-            (e) => e.start === minIndex && !visited.has(e.end)
-          )) {
-            const newDistance = distances[minIndex] + edge.weight; // Sửa thành edge.weight
-      
-            if (newDistance < distances[edge.end]) {
-              distances[edge.end] = newDistance;
-            }
-          }
-      
-          const minEdge = graph
-            .filter(
-              (e) => e.start === minIndex && !visited.has(e.end)
-            )
-            .reduce(
-              (min, edge) =>
-                edge.weight < min.weight ? edge : min, // Sửa thành edge.weight
+          if (availableEdges.length > 0) {
+            // Chọn cạnh ngắn nhất và thêm vào kết quả
+            const minEdge = availableEdges.reduce(
+              (min, edge) => (edge.weight < min.weight ? edge : min),
               {
                 start: -1,
                 end: -1,
@@ -263,18 +256,23 @@ export const RightSidebar = () => {
               }
             );
       
-          startVertex = minEdge.end;
-          if (minEdge.start !== -1) {
             result.push(minEdge);
       
-            totalMinutes += minEdge.minutes;
+            // Di chuyển đến đỉnh kết thúc của cạnh
+            currentVertex = minEdge.end;
+          } else {
+            // Nếu không còn cạnh đi tiếp, chọn đỉnh chưa được ghé thăm làm điểm xuất phát
+            if (chooseNextVertex() === null) {
+              break; // Kết thúc nếu đã ghé thăm tất cả các điểm
+            }
           }
         }
       
-        setTotalMinutes(totalMinutes);
-        setTotalDistance(totalDistance);
         return result;
       };
+      
+      
+
 
       
     return (
@@ -348,7 +346,7 @@ export const RightSidebar = () => {
                                             <li
                                                 key={`${edge.start}-${edge.end}`}
                                             >
-                                                {`${index}.  ${
+                                                {`${index+1}.  ${
                                                     selectedFeatures[edge.start]
                                                         .text
                                                 } -> ${
