@@ -58,12 +58,12 @@ export const RightSidebar = () => {
         setSelectedFeatures(listPlaces);
         console.log('List places:');
         console.log(selectedFeatures);
-    }, [listPlaces]);
+    }, [listPlaces, selectedFeatures]);
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
     };
-    
+
     useEffect(() => {
         console.log('List seleted Features:');
         console.log(selectedFeatures.length);
@@ -95,8 +95,7 @@ export const RightSidebar = () => {
             console.error('Error calculating distances:', error);
         }
     };
-    
-    
+            
     const handleCloseButtonClick = () => {
         setIsContentVisible(false);
     };
@@ -105,7 +104,7 @@ export const RightSidebar = () => {
         kms: number;
         minutes: number;
     }
-    
+
     const getRouteBetweenPoints = async (
         start: [number, number],
         end: [number, number]
@@ -114,26 +113,25 @@ export const RightSidebar = () => {
             const resp = await directionsApi.get<DirectionsResponse>(
                 `/${start.join(',')};${end.join(',')}`
             );
-    
+
             const route = resp.data.routes[0];
-    
+
             if (!route) {
                 console.error("No route found");
                 // Trả về giá trị mặc định khi không tìm thấy tuyến đường
                 return { kms: 0, minutes: 0 };
             }
-    
+
             const { distance, duration } = route;
-    
+
             let kms = distance / 1000;
-            kms = Math.round(kms * 100) / 100;
-    
+            kms = Math.round(kms * 100) / 100; // Sửa lỗi chia 100
             const minutes = Math.floor(duration / 60);
-    
-            console.log("Route:", route);
-            console.log("Kilometers:", kms);
-            console.log("Minutes:", minutes);
-    
+
+            console.log('Route:', route);
+            console.log('Kilometers:', kms);
+            console.log('Minutes:', minutes);
+
             return { kms, minutes };
         } catch (error) {
             console.error("Error fetching route:", error);
@@ -146,7 +144,6 @@ export const RightSidebar = () => {
 
     const calculateDistances = async (): Promise<RouteResult[][]> => {
         const distances: RouteResult[][] = [];
-    
         for (let i = 0; i < selectedFeatures.length; i++) {
             const element: RouteResult[] = [];
             for (let j = 0; j < selectedFeatures.length; j++) {
@@ -159,8 +156,9 @@ export const RightSidebar = () => {
                     selectedFeatures[j].center[0],
                     selectedFeatures[j].center[1],
                 ];
-    
+                // Gọi hàm và chờ cho kết quả (do hàm là bất đồng bộ)
                 try {
+                    // Gọi hàm và chờ cho kết quả (do hàm là bất đồng bộ)
                     const routeResult = await getRouteBetweenPoints(
                         startCoordinates,
                         endCoordinates
@@ -170,7 +168,7 @@ export const RightSidebar = () => {
                     console.log("Route calculation complete.");
                     console.log(element);
                 } catch (error) {
-                    console.error("Error calculating route:", error);
+                    console.error('Error calculating route:', error);
                 }
             }
             distances.push(element);
@@ -320,45 +318,66 @@ export const RightSidebar = () => {
                     ))}
                 </div>
 
-                <button 
-                    onClick={handleFloatingButtonClick} 
+                <button
+                    onClick={handleFloatingButtonClick}
                     className="floating-button"
-                    >
+                >
                     Floating Button
                 </button>
                 {isContentVisible && (
-                <div className="sidebar-content">
-                    <div className='header'>
-                        <p>Lịch Trình</p>
-                        <button onClick={handleCloseButtonClick} className="close-button">
-                            <img
-                                width="10"
-                                height="10"
-                                src="https://img.icons8.com/ios/50/delete-sign--v1.png"
-                                alt="delete-sign--v1"
-                            />
-                        </button>
+                    <div className="sidebar-content">
+                        <div className="header">
+                            <p>Lịch Trình</p>
+                            <button
+                                onClick={handleCloseButtonClick}
+                                className="close-button"
+                            >
+                                <img
+                                    width="10"
+                                    height="10"
+                                    src="https://img.icons8.com/ios/50/delete-sign--v1.png"
+                                    alt="delete-sign--v1"
+                                />
+                            </button>
+                        </div>
+                        <div className="content">
+                            <ul>
+                                {primResult.map(
+                                    (edge, index) =>
+                                        edge.start !== edge.end && (
+                                            <li
+                                                key={`${edge.start}-${edge.end}`}
+                                            >
+                                                {`${index}.  ${
+                                                    selectedFeatures[edge.start]
+                                                        .text
+                                                } -> ${
+                                                    selectedFeatures[edge.end]
+                                                        .text
+                                                } : ${edge.weight} kms, `}
+                                                {edge.minutes > 60
+                                                    ? `${Math.floor(
+                                                          edge.minutes / 60
+                                                      )} giờ ${
+                                                          edge.minutes % 60
+                                                      } phút`
+                                                    : `${edge.minutes} phút`}
+                                            </li>
+                                        )
+                                )}
+                            </ul>
+                            <p>
+                                Tổng Chiều Dài: {totalDistance.toFixed(2)} kms -
+                                Tổng Thời Gian:{' '}
+                                {totalMinutes > 60
+                                    ? `${Math.floor(totalMinutes / 60)} giờ ${
+                                          totalMinutes % 60
+                                      } phút`
+                                    : `${totalMinutes} phút`}
+                            </p>
+                        </div>
                     </div>
-                    <div className='content'>
-                        <ul>
-                        {primResult.map((edge, index) => (
-                            edge.start !== edge.end && (
-                                <li key={`${edge.start}-${edge.end}`}>
-                                    {`${index}.  ${selectedFeatures[edge.start].text} -> ${selectedFeatures[edge.end].text} : ${edge.weight} kms, `}
-                                    {edge.minutes > 60 ? `${Math.floor(edge.minutes / 60)} giờ ${edge.minutes % 60} phút` : `${edge.minutes} phút`}
-                                </li>
-                            )
-                        ))}
-
-                        </ul>
-                        <p>
-                            Tổng Chiều Dài: {totalDistance.toFixed(2)} kms
-                            - Tổng Thời Gian: {totalMinutes > 60 ? `${Math.floor(totalMinutes / 60)} giờ ${totalMinutes % 60} phút` : `${totalMinutes} phút`}
-                        </p>
-                    </div>
-                </div>
-                
-            )}
+                )}
             </div>
         </>
     );
