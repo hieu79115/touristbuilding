@@ -26,9 +26,6 @@ export const RightSidebar = () => {
 
     const [isLoading, setIsLoading] = useState(false);
 
-    const isSideBarActive = isOpen && !isContentVisible;
-    const isFloatingButtonActive = isContentVisible;
-
     const handleDragStart = (
         e: React.DragEvent<HTMLUListElement>,
         index: number
