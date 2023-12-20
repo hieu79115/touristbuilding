@@ -17,6 +17,7 @@ export const RightSidebar = () => {
     const [primResult, setPrimResult] = useState<Edge[]>([]);
     const [totalDistance, setTotalDistance] = useState<number>(0);
     const [totalMinutes, setTotalMinutes] = useState<number>(0);
+    const [isOverlayVisible, setIsOverlayVisible] = useState(false);
 
     const handleDragStart = (
         e: React.DragEvent<HTMLUListElement>,
@@ -62,6 +63,7 @@ export const RightSidebar = () => {
 
     const toggleSidebar = () => {
         setIsOpen(!isOpen);
+        // setIsOverlayVisible(!isOpen); // Hiển thị/ẩn overlay khi mở/đóng sidebar
     };
 
     useEffect(() => {
@@ -78,31 +80,37 @@ export const RightSidebar = () => {
 
     const handleFloatingButtonClick = async () => {
         try {
-            const distances = await calculateDistances();
-            // Sử dụng hàm buildCompleteGraph để xây dựng đồ thị từ khoảng cách
-            const completeGraph = buildCompleteGraph(distances, selectedFeatures);
-            const dijkstraResult = applyDijkstraAlgorithm(completeGraph, 0);
-    
-            setPrimResult(dijkstraResult);
-            console.log('Dijkstra Result:', dijkstraResult);
-    
-            setIsContentVisible(true);
-    
-            setTotalMinutes(
-                dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
-            );
-
-            setTotalDistance(
-                dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
-            );
+          const distances = await calculateDistances();
+          const completeGraph = buildCompleteGraph(distances, selectedFeatures);
+          const dijkstraResult = applyDijkstraAlgorithm(completeGraph, 0);
+      
+          setPrimResult(dijkstraResult);
+          console.log('Dijkstra Result:', dijkstraResult);
+      
+          setIsContentVisible(true);
+          setIsOverlayVisible(true);
+      
+          setTotalMinutes(
+            dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
+          );
+      
+          setTotalDistance(
+            dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
+          );
         } catch (error) {
-            console.error('Error calculating distances:', error);
+          console.error('Error calculating distances:', error);
         }
-    };
-            
-    const handleCloseButtonClick = () => {
+      };
+      
+      const handleOverlayClick = () => {
         setIsContentVisible(false);
-    };
+        setIsOverlayVisible(false);
+      };
+            
+      const handleCloseButtonClick = () => {
+        setIsContentVisible(false);
+        setIsOverlayVisible(false);
+      };
 
     interface RouteResult {
         kms: number;
@@ -270,22 +278,20 @@ export const RightSidebar = () => {
       
         return result;
       };
-      
-      
+          
 
 
-      
-    return (
+      return (
         <>
-            <button
-                onClick={toggleSidebar}
-                className={`toggle-button ${isOpen ? 'open' : ''}`}
-            >
-                {isOpen ? 'Close Sidebar' : 'Open Sidebar'}
-            </button>
-            <div className={`right-sidebar ${isOpen ? 'open' : 'closed'}`}>
-                <h3>Danh sách địa điểm</h3>
-                <div className="container">
+          <button
+            onClick={toggleSidebar}
+            className={`toggle-button ${isOpen ? 'open' : ''}`}
+          >
+            {isOpen ? 'Close Sidebar' : 'Open Sidebar'}
+          </button>
+          <div className={`right-sidebar ${isOpen ? 'open' : 'closed'}`}>
+            <h3>Danh sách địa điểm</h3>
+            <div className={`container ${isContentVisible ? 'container-disabled' : ''}`}>
                     {selectedFeatures.map((feature, index) => (
                         <ul
                             className="list-item"
@@ -314,6 +320,14 @@ export const RightSidebar = () => {
                             </li>
                         </ul>
                     ))}
+      
+    {/* Overlay */}
+    {isOverlayVisible && (
+      <div
+        className="overlay"
+        onClick={handleOverlayClick}
+      />
+    )}
                 </div>
 
                 <button
