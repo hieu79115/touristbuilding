@@ -182,9 +182,6 @@ export const MapProvider = ({ children }: Props) => {
             const customButton = document.getElementById('customButton');
             if (customButton) {
                 customButton.addEventListener('click', () => {
-                    const lng = newMarker.getLngLat().lng;
-                    const lat = newMarker.getLngLat().lat;
-
                     console.log('List places:');
                     console.log(listPlaces);
                     const isDuplicate =
