@@ -28,7 +28,6 @@ type MapReducerAction =
           type: 'setListPlaces';
           payload: Feature[];
       };
-
 export const mapReducer = (
     state: MapStateProps,
     action: MapReducerAction

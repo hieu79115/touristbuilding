@@ -9,6 +9,7 @@ interface MapContextProps {
     setMap: (map: mapboxgl) => void;
     listPlaces: Feature[];
     updateListPlaces: (newListPlaces: Feature[]) => void;
+    updateAllowClick: (allowClick: boolean) => void;
 }
 
 export const MapContext = createContext({} as MapContextProps);

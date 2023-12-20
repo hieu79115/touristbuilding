@@ -63,6 +63,15 @@ export const MapProvider = ({ children }: Props) => {
         dispatch({ type: 'setListPlaces', payload: newListPlaces });
     };
 
+    const updateAllowClick = (allowclick: boolean) => {
+        if (!allowclick) {
+            map?.off('click', handleClickOnMap);
+            previousMarker?.remove();
+        } else {
+            map?.on('click', handleClickOnMap);
+        }
+    };
+
     useEffect(() => {
         if (listPlaces.length > 0) {
             listPlaces.forEach((element) => {
@@ -121,6 +130,7 @@ export const MapProvider = ({ children }: Props) => {
                     <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
                     <button id="customButton">Add</button>`;
                 [lng, lat] = newPlace[0].center;
+                map?.flyTo({ center: [lng, lat] });
             } else {
                 popupContent = `
                 <h6>New Marker</h6>
@@ -135,6 +145,7 @@ export const MapProvider = ({ children }: Props) => {
                 }
 
                 newPlace[0].text = `New Marker ${count}`;
+                newPlace[0].center = [lng, lat];
             }
 
             const popup = new Popup().setHTML(popupContent ?? '');
@@ -144,7 +155,6 @@ export const MapProvider = ({ children }: Props) => {
                 .setPopup(popup)
                 .addTo(map!);
 
-            map?.flyTo({ center: [lng, lat] });
             const zoom = map?.getZoom();
 
             const nearbyMarker = markers.find((m) => {
@@ -186,7 +196,10 @@ export const MapProvider = ({ children }: Props) => {
                             newPlace[0].center[1];
 
                     if (!isDuplicate) {
-                        dispatch({ type: 'addPlaceToList', payload: newPlace });
+                        dispatch({
+                            type: 'addPlaceToList',
+                            payload: newPlace,
+                        });
                         listPlaces = [...listPlaces, ...newPlace];
                     }
                 });
@@ -228,6 +241,7 @@ export const MapProvider = ({ children }: Props) => {
                 ...state,
                 setMap,
                 updateListPlaces,
+                updateAllowClick,
             }}
         >
             {children}

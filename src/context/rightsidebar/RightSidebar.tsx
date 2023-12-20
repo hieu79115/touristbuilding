@@ -1,20 +1,24 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { MapContext } from '../maps/MapContext';
 import './RightSidebar.css';
 import { Feature } from '../../interfaces/places';
 import { directionsApi } from '../../apis';
 import { DirectionsResponse } from '../../interfaces/directions';
+import { Edge, Route } from '../../interfaces/graph';
 
 export const RightSidebar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
     const { updateListPlaces } = useContext(MapContext);
-
+    const { updateAllowClick } = useContext(MapContext);
     const { listPlaces } = useContext(MapContext);
 
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
     const [isContentVisible, setIsContentVisible] = useState(false);
-    const [primResult, setPrimResult] = useState<Edge[]>([]);
+    const sidebarContentRef = useRef<HTMLDivElement>(null);
+
+    const [dijkstraResult, setDijkstraResult] = useState<Edge[]>([]);
     const [totalDistance, setTotalDistance] = useState<number>(0);
     const [totalMinutes, setTotalMinutes] = useState<number>(0);
     const [isOverlayVisible, setIsOverlayVisible] = useState(false);
@@ -56,71 +60,79 @@ export const RightSidebar = () => {
     };
 
     useEffect(() => {
-        setSelectedFeatures(listPlaces);
-        console.log('List places:');
-        console.log(selectedFeatures);
-    }, [listPlaces, selectedFeatures]);
+        const handleDocumentClick = (e: MouseEvent) => {
+            if (
+                isOpen &&
+                sidebarContentRef.current &&
+                !sidebarContentRef.current.contains(e.target as Node)
+            ) {
+                setIsContentVisible(false);
+                setIsOverlayVisible(false);
+                updateAllowClick(true);
+            }
+        };
 
-    const toggleSidebar = () => {
-        setIsOpen(!isOpen);
-        // setIsOverlayVisible(!isOpen); // Hiển thị/ẩn overlay khi mở/đóng sidebar
-    };
+        if (isOpen) {
+            document.addEventListener('click', handleDocumentClick);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleDocumentClick);
+        };
+    }, [isOpen, updateAllowClick]);
 
     useEffect(() => {
-        console.log('List seleted Features:');
-        console.log(selectedFeatures.length);
-    }, [selectedFeatures.length]);
+        setSelectedFeatures(listPlaces);
+    }, [listPlaces, selectedFeatures]);
 
     const handleDeleteButtonClick = (index: number) => {
         const newListPlaces = selectedFeatures.filter((_, i) => i !== index);
         setSelectedFeatures(newListPlaces.slice());
         updateListPlaces(newListPlaces);
-        console.log(`Deleting feature with ID: ${index}`);
     };
 
     const handleFloatingButtonClick = async () => {
         try {
-          const distances = await calculateDistances();
-          const completeGraph = buildCompleteGraph(distances, selectedFeatures);
-          const dijkstraResult = applyDijkstraAlgorithm(completeGraph, 0);
-      
-          setPrimResult(dijkstraResult);
-          console.log('Dijkstra Result:', dijkstraResult);
-      
-          setIsContentVisible(true);
-          setIsOverlayVisible(true);
-      
-          setTotalMinutes(
-            dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
-          );
-      
-          setTotalDistance(
-            dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
-          );
-        } catch (error) {
-          console.error('Error calculating distances:', error);
-        }
-      };
-      
-      const handleOverlayClick = () => {
-        setIsContentVisible(false);
-        setIsOverlayVisible(false);
-      };
-            
-      const handleCloseButtonClick = () => {
-        setIsContentVisible(false);
-        setIsOverlayVisible(false);
-      };
+            const distances = await calculateDistances();
+            const completeGraph = buildCompleteGraph(
+                distances,
+                selectedFeatures
+            );
+            const dijkstraResult = applyDijkstraAlgorithm(completeGraph, 0);
 
-    interface RouteResult {
-        kms: number;
-        minutes: number;
-    }
+            setDijkstraResult(dijkstraResult);
+
+            setIsContentVisible(true);
+            setIsOverlayVisible(true);
+            updateAllowClick(false);
+
+            setTotalMinutes(
+                dijkstraResult.reduce((sum, edge) => sum + edge.minutes, 0)
+            );
+
+            setTotalDistance(
+                dijkstraResult.reduce((sum, edge) => sum + edge.weight, 0)
+            );
+        } catch (error) {
+            console.error('Error calculating distances:', error);
+        }
+    };
+
+    const handleOverlayClick = () => {
+        setIsContentVisible(false);
+        setIsOverlayVisible(false);
+    };
+
+    const handleCloseButtonClick = () => {
+        setIsContentVisible(false);
+        setIsOverlayVisible(false);
+        updateAllowClick(true);
+    };
 
     const getRouteBetweenPoints = async (
         start: [number, number],
         end: [number, number]
-    ): Promise<RouteResult> => {
+    ): Promise<Route> => {
         try {
             const resp = await directionsApi.get<DirectionsResponse>(
                 `/${start.join(',')};${end.join(',')}`
@@ -129,37 +141,28 @@ export const RightSidebar = () => {
             const route = resp.data.routes[0];
 
             if (!route) {
-                console.error("No route found");
-                // Trả về giá trị mặc định khi không tìm thấy tuyến đường
+                console.error('No route found');
                 return { kms: 0, minutes: 0 };
             }
 
             const { distance, duration } = route;
 
             let kms = distance / 1000;
-            kms = Math.round(kms * 100) / 100; // Sửa lỗi chia 100
+            kms = Math.round(kms * 100) / 100;
             const minutes = Math.floor(duration / 60);
-
-            // console.log('Route:', route);
-            // console.log('Kilometers:', kms);
-            // console.log('Minutes:', minutes);
 
             return { kms, minutes };
         } catch (error) {
-            console.error("Error fetching route:", error);
-            // Trả về giá trị mặc định khi có lỗi
+            console.error('Error fetching route:', error);
             return { kms: 0, minutes: 0 };
         }
     };
-    
-    
 
-    const calculateDistances = async (): Promise<RouteResult[][]> => {
-        const distances: RouteResult[][] = [];
+    const calculateDistances = async (): Promise<Route[][]> => {
+        const distances: Route[][] = [];
         for (let i = 0; i < selectedFeatures.length; i++) {
-            const element: RouteResult[] = [];
+            const element: Route[] = [];
             for (let j = 0; j < selectedFeatures.length; j++) {
-                // Thay đổi từ number[] sang [number, number]
                 const startCoordinates: [number, number] = [
                     selectedFeatures[i].center[0],
                     selectedFeatures[i].center[1],
@@ -168,46 +171,36 @@ export const RightSidebar = () => {
                     selectedFeatures[j].center[0],
                     selectedFeatures[j].center[1],
                 ];
-                // Gọi hàm và chờ cho kết quả (do hàm là bất đồng bộ)
                 try {
-                    // Gọi hàm và chờ cho kết quả (do hàm là bất đồng bộ)
                     const routeResult = await getRouteBetweenPoints(
                         startCoordinates,
                         endCoordinates
                     );
-    
+
                     element.push(routeResult);
-                    console.log("Route calculation complete.");
-                    // console.log(element);
+                    console.log('Route calculation complete.');
                 } catch (error) {
                     console.error('Error calculating route:', error);
                 }
             }
             distances.push(element);
         }
-    
+
         console.log(distances);
         return distances;
     };
-    
-    interface Edge {
-        start: number;
-        end: number;
-        weight: number;
-        minutes: number;
-    }
 
     const buildCompleteGraph = (
-        distances: RouteResult[][],
+        distances: Route[][],
         selectedFeatures: Feature[]
     ): Edge[] => {
         const graph: Edge[] = [];
-    
+
         selectedFeatures.forEach((featureI, i) => {
             selectedFeatures.forEach((featureJ, j) => {
                 if (i !== j) {
                     const { kms, minutes } = distances[i][j];
-    
+
                     graph.push({
                         start: i,
                         end: j,
@@ -217,81 +210,84 @@ export const RightSidebar = () => {
                 }
             });
         });
-    
+
         return graph;
     };
 
-      const applyDijkstraAlgorithm = (
+    const applyDijkstraAlgorithm = (
         graph: Edge[],
         startVertex: number
-      ): Edge[] => {
+    ): Edge[] => {
         const result: Edge[] = [];
         const visited: Set<number> = new Set();
         let currentVertex = startVertex;
-      
-        // Định nghĩa hàm ngoại trọng vòng lặp
+
         const chooseNextVertex = () => {
-          const unvisitedVertices = graph
-            .filter((edge) => !visited.has(edge.start))
-            .map((edge) => edge.start);
-      
-          if (unvisitedVertices.length > 0) {
-            currentVertex = unvisitedVertices[0];
-          } else {
-            return null; // Kết thúc nếu đã ghé thăm tất cả các điểm
-          }
-        };
-      
-        while (visited.size < graph.length) {
-          visited.add(currentVertex);
-      
-          // Tạo biến khác để lưu giữ giá trị của currentVertex
-          const currentVertexValue = currentVertex;
-      
-          const availableEdges = graph.filter(
-            (edge) => edge.start === currentVertexValue && !visited.has(edge.end)
-          );
-      
-          if (availableEdges.length > 0) {
-            // Chọn cạnh ngắn nhất và thêm vào kết quả
-            const minEdge = availableEdges.reduce(
-              (min, edge) => (edge.weight < min.weight ? edge : min),
-              {
-                start: -1,
-                end: -1,
-                weight: Number.POSITIVE_INFINITY,
-                minutes: Number.POSITIVE_INFINITY,
-              }
-            );
-      
-            result.push(minEdge);
-      
-            // Di chuyển đến đỉnh kết thúc của cạnh
-            currentVertex = minEdge.end;
-          } else {
-            // Nếu không còn cạnh đi tiếp, chọn đỉnh chưa được ghé thăm làm điểm xuất phát
-            if (chooseNextVertex() === null) {
-              break; // Kết thúc nếu đã ghé thăm tất cả các điểm
+            const unvisitedVertices = graph
+                .filter((edge) => !visited.has(edge.start))
+                .map((edge) => edge.start);
+
+            if (unvisitedVertices.length > 0) {
+                currentVertex = unvisitedVertices[0];
+            } else {
+                return null;
             }
-          }
+        };
+
+        while (visited.size < graph.length) {
+            visited.add(currentVertex);
+
+            const currentVertexValue = currentVertex;
+
+            const availableEdges = graph.filter(
+                (edge) =>
+                    edge.start === currentVertexValue && !visited.has(edge.end)
+            );
+
+            if (availableEdges.length > 0) {
+                const minEdge = availableEdges.reduce(
+                    (min, edge) => (edge.weight < min.weight ? edge : min),
+                    {
+                        start: -1,
+                        end: -1,
+                        weight: Number.POSITIVE_INFINITY,
+                        minutes: Number.POSITIVE_INFINITY,
+                    }
+                );
+
+                result.push(minEdge);
+
+                currentVertex = minEdge.end;
+            } else {
+                if (chooseNextVertex() === null) {
+                    break;
+                }
+            }
         }
-      
+
         return result;
-      };
-          
+    };
 
-
-      return (
+    return (
         <>
-          <button
-            onClick={toggleSidebar}
-            className={`toggle-button ${isOpen ? 'open' : ''}`}
-          >
-            {isOpen ? 'Close Sidebar' : 'Open Sidebar'}
-          </button>
-          <div className={`right-sidebar ${isOpen ? 'open' : 'closed'}`}>
-            <h3>Danh sách địa điểm</h3>
-            <div className={`container ${isContentVisible ? 'container-disabled' : ''}`}>
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`toggle-button ${isOpen ? 'open' : ''}`}
+            >
+                {isOpen ? 'Close Sidebar' : 'Open Sidebar'}
+            </button>
+
+            <div
+                className={`right-sidebar ${isOpen ? 'open' : 'closed'}`}
+                ref={sidebarContentRef}
+            >
+                <h3>Danh sách địa điểm</h3>
+
+                <div
+                    className={`container ${
+                        isContentVisible ? 'container-disabled' : ''
+                    }`}
+                >
                     {selectedFeatures.map((feature, index) => (
                         <ul
                             className="list-item"
@@ -320,14 +316,10 @@ export const RightSidebar = () => {
                             </li>
                         </ul>
                     ))}
-      
-    {/* Overlay */}
-    {isOverlayVisible && (
-      <div
-        className="overlay"
-        onClick={handleOverlayClick}
-      />
-    )}
+
+                    {isOverlayVisible && (
+                        <div className="overlay" onClick={handleOverlayClick} />
+                    )}
                 </div>
 
                 <button
@@ -336,6 +328,7 @@ export const RightSidebar = () => {
                 >
                     Floating Button
                 </button>
+
                 {isContentVisible && (
                     <div className="sidebar-content">
                         <div className="header">
@@ -354,13 +347,13 @@ export const RightSidebar = () => {
                         </div>
                         <div className="content">
                             <ul>
-                                {primResult.map(
+                                {dijkstraResult.map(
                                     (edge, index) =>
                                         edge.start !== edge.end && (
                                             <li
                                                 key={`${edge.start}-${edge.end}`}
                                             >
-                                                {`${index+1}.  ${
+                                                {`${index + 1}.  ${
                                                     selectedFeatures[edge.start]
                                                         .text
                                                 } -> ${
