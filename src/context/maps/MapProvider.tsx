@@ -111,7 +111,7 @@ export const MapProvider = ({ children }: Props) => {
     }, [places]);
 
     const handleClickOnMap = (e: mapboxgl.MapMouseEvent) => {
-        const { lng, lat } = e.lngLat;
+        let { lng, lat } = e.lngLat;
         reverseLookup(lat, lng).then((result: Feature[]) => {
             const newPlace: Feature[] = result;
 
@@ -130,6 +130,7 @@ export const MapProvider = ({ children }: Props) => {
                 <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
                 <button id="customButton">Add</button>
             `;
+                [lng, lat] = newPlace[0].center;
             } else {
                 popupContent = `
                 <h6>New Marker</h6>
@@ -145,6 +146,7 @@ export const MapProvider = ({ children }: Props) => {
                 .setPopup(popup)
                 .addTo(map!);
 
+            map?.flyTo({ center: [lng, lat], zoom: 15 });
             const zoom = map?.getZoom();
             console.log('Zoom:', zoom);
 
