@@ -2,11 +2,13 @@
     "name": "touristbuilding",
     "version": "0.1.0",
     "private": true,
+    "homepage": "http:/Jhandf.github.io/touristbuilding",
     "dependencies": {
         "@testing-library/jest-dom": "^5.17.0",
         "@testing-library/react": "^13.4.0",
         "@testing-library/user-event": "^13.5.0",
         "axios": "^1.6.2",
+        "gh-pages": "^6.1.0",
         "mapbox-gl": "^3.0.1",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
@@ -15,6 +17,8 @@
     },
     "scripts": {
         "start": "react-scripts --openssl-legacy-provider start",
+        "predeploy": "npm run build",
+        "deploy": "gh-pages -d build",
         "build": "react-scripts build",
         "test": "react-scripts test",
         "eject": "react-scripts eject"
@@ -43,7 +47,7 @@
         "@types/react": "^18.2.45",
         "@types/react-dom": "^18.2.18",
         "ts-node": "^10.9.2",
-        "typescript": "^5.3.3"
+        "typescript": "^4.9.5"
     },
     "resolutions": {
         "**/@typescript-eslint/eslint-plugin": "^4.1.1",
