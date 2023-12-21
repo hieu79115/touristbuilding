@@ -414,7 +414,7 @@ export const RightSidebar = () => {
                         <SyncLoader color="rgba(0, 0, 0, 1)" size={4} />
                     ) : (
                         // Nếu không loading, hiển thị nội dung bình thường
-                        'Floating Button'
+                        'Start'
                     )}
                 </button>
 
