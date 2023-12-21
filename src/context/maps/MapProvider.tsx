@@ -21,6 +21,27 @@ const INITIAL_STATE: MapStateProps = {
     listPlaces: [],
 };
 
+const styles = `
+    .custom-button {
+        background-color: #4caf55;
+        color: white;
+        padding: 4px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background-color 0.3s;
+    }
+
+    .custom-button:hover {
+        background-color: #60e260;
+    }
+`;
+
+const styleElement = document.createElement('style');
+styleElement.innerHTML = styles;
+document.head.appendChild(styleElement);
+
 interface Props {
     children: JSX.Element | JSX.Element[];
 }
@@ -83,10 +104,9 @@ export const MapProvider = ({ children }: Props) => {
             const [lng, lat] = place.center;
 
             const popupContent = `
-                <h6>${place.text_es}</h6>
-                <p class='text-muted' style='font-size: 12px'>${place.place_name}</p>
-                <button id="customButton">Add</button>
-            `;
+            <h6 class="popup-title">${place.text_es}</h6>
+            <p class="popup-text text-muted">${place.place_name}</p>
+            <button id="customButton" class="custom-button">Add</button>`;
 
             const popup = new Popup().setHTML(popupContent);
 
@@ -104,7 +124,7 @@ export const MapProvider = ({ children }: Props) => {
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [places]);
-
+    
     const handleClickOnMap = (e: mapboxgl.MapMouseEvent) => {
         let { lng, lat } = e.lngLat;
         reverseLookup(lat, lng).then((result: Feature[]) => {
@@ -117,15 +137,15 @@ export const MapProvider = ({ children }: Props) => {
                 lat - newPlace[0].center[1] > 0.000000111
             ) {
                 popupContent = `
-                    <h6>${newPlace[0].text}</h6>
-                    <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
-                    <button id="customButton">Add</button>`;
+                <h6 style="font-size: 16px; font-weight: bold;">${newPlace[0].text}</h6>
+                <p class='text-muted' style='font-size: 12px;'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
+                <button id="customButton" class="custom-button">Add</button>`;
                 [lng, lat] = newPlace[0].center;
             } else {
                 popupContent = `
-                <h6>New Marker</h6>
-                <p class='text-muted' style='font-size: 12px'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
-                <button id="customButton">Add</button>`;
+                <h6 style="font-size: 16px; font-weight: bold;">${newPlace[0].text}</h6>
+                <p class='text-muted' style='font-size: 12px;'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
+                <button id="customButton" class="custom-button">Add</button>`;
 
                 let count = 1;
                 for (let i = 0; i < listPlaces.length; i++) {
