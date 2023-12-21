@@ -354,7 +354,6 @@ export const RightSidebar = () => {
                                     }`}
                                     disabled={!isEditing[index]}
                                 />
-
                                 <div className="margin-left-auto">
                                     <button
                                         type={
@@ -379,7 +378,6 @@ export const RightSidebar = () => {
                                                     : 'edit'
                                             }
                                         />
-                                        {isEditing[index] ? ' Save' : ' Edit'}
                                     </button>
                                 </div>
                             </form>

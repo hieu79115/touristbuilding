@@ -137,7 +137,7 @@ export const MapProvider = ({ children }: Props) => {
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [places]);
-    
+
     const handleClickOnMap = (e: mapboxgl.MapMouseEvent) => {
         let { lng, lat } = e.lngLat;
         reverseLookup(lat, lng).then((result: Feature[]) => {
@@ -157,7 +157,7 @@ export const MapProvider = ({ children }: Props) => {
                 map?.flyTo({ center: [lng, lat] });
             } else {
                 popupContent = `
-                <h6 style="font-size: 16px; font-weight: bold;">${newPlace[0].text}</h6>
+                <h6 style="font-size: 16px; font-weight: bold;">New Marker</h6>
                 <p class='text-muted' style='font-size: 12px;'>${newPlace[0].context[0].text}, ${newPlace[0].context[2].text}, ${newPlace[0].context[3].text}, ${newPlace[0].context[4].text}</p>
                 <button id="customButton" class="custom-button">Add</button>`;
 
