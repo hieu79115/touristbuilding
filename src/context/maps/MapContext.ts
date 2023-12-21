@@ -10,6 +10,7 @@ interface MapContextProps {
     listPlaces: Feature[];
     updateListPlaces: (newListPlaces: Feature[]) => void;
     updateAllowClick: (allowClick: boolean) => void;
+    flyTo: (lng: number, lat: number) => void;
 }
 
 export const MapContext = createContext({} as MapContextProps);

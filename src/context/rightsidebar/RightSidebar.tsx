@@ -10,8 +10,10 @@ import { SyncLoader } from 'react-spinners';
 export const RightSidebar = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedFeatures, setSelectedFeatures] = useState<Feature[]>([]);
+
     const { updateListPlaces } = useContext(MapContext);
     const { updateAllowClick } = useContext(MapContext);
+    const { flyTo } = useContext(MapContext);
     const { listPlaces } = useContext(MapContext);
 
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -25,6 +27,10 @@ export const RightSidebar = () => {
     const [isOverlayVisible, setIsOverlayVisible] = useState(false);
 
     const [isLoading, setIsLoading] = useState(false);
+
+    const [isEditing, setIsEditing] = useState<Array<boolean>>(
+        new Array(selectedFeatures.length).fill(false)
+    );
 
     const handleDragStart = (
         e: React.DragEvent<HTMLUListElement>,
@@ -132,6 +138,32 @@ export const RightSidebar = () => {
         setIsContentVisible(false);
         setIsOverlayVisible(false);
         updateAllowClick(true);
+    };
+
+    const handleInputChange = (index: number, value: string) => {
+        const updateFeature = [...selectedFeatures];
+        updateFeature[index].text = value;
+        updateListPlaces(updateFeature);
+    };
+
+    const handleToggleEdit = (index: number) => {
+        const newIsEditing = [...isEditing];
+        newIsEditing[index] = !newIsEditing[index];
+        setIsEditing(newIsEditing);
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+    };
+
+    const handleFlyTo = (e: React.MouseEvent, index: number) => {
+        if (!isEditing[index] && !(e.target instanceof HTMLInputElement)) {
+            console.log('Fly to:', selectedFeatures[index].text);
+            flyTo(
+                selectedFeatures[index].center[0],
+                selectedFeatures[index].center[1]
+            );
+        }
     };
 
     const getRouteBetweenPoints = async (
@@ -300,22 +332,67 @@ export const RightSidebar = () => {
                             className="list-item"
                             key={index}
                             draggable
+                            onClick={(e) => handleFlyTo(e, index)}
                             onDragStart={(e) => handleDragStart(e, index)}
                             onDragOver={(e) => handleDragOver(e, index)}
                             onDragLeave={handleDragLeave}
                             onDrop={handleDrop}
                         >
-                            <li key={feature.id}>{feature.text}</li>
-                            <li className="detele">
+                            <form
+                                onSubmit={handleSubmit}
+                                className="containerForm"
+                            >
+                                <input
+                                    type="text"
+                                    value={feature.text}
+                                    onChange={(e) =>
+                                        handleInputChange(index, e.target.value)
+                                    }
+                                    onClick={(e) => handleFlyTo(e, index)}
+                                    className={`input ${
+                                        isEditing[index] ? 'editable' : ''
+                                    }`}
+                                    disabled={!isEditing[index]}
+                                />
+
+                                <div className="margin-left-auto">
+                                    <button
+                                        type={
+                                            isEditing[index]
+                                                ? 'button'
+                                                : 'submit'
+                                        }
+                                        className="button"
+                                        onClick={() => handleToggleEdit(index)}
+                                    >
+                                        <img
+                                            width="15"
+                                            height="15"
+                                            src={
+                                                isEditing[index]
+                                                    ? 'https://img.icons8.com/windows/32/create-new.png'
+                                                    : 'https://img.icons8.com/windows/32/edit.png'
+                                            }
+                                            alt={
+                                                isEditing[index]
+                                                    ? 'create-new'
+                                                    : 'edit'
+                                            }
+                                        />
+                                        {isEditing[index] ? ' Save' : ' Edit'}
+                                    </button>
+                                </div>
+                            </form>
+                            <li className="padding-0">
                                 <button
-                                    className="delete-button"
+                                    className="button delete-button"
                                     onClick={() =>
                                         handleDeleteButtonClick(index)
                                     }
                                 >
                                     <img
-                                        width="10"
-                                        height="10"
+                                        width="15"
+                                        height="15"
                                         src="https://img.icons8.com/ios/50/delete-sign--v1.png"
                                         alt="delete-sign--v1"
                                     />

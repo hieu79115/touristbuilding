@@ -72,6 +72,10 @@ export const MapProvider = ({ children }: Props) => {
         }
     };
 
+    const flyTo = (lng: number, lat: number) => {
+        map?.flyTo({ center: [lng, lat] });
+    };
+
     useEffect(() => {
         if (listPlaces.length > 0) {
             listPlaces.forEach((element) => {
@@ -242,6 +246,7 @@ export const MapProvider = ({ children }: Props) => {
                 setMap,
                 updateListPlaces,
                 updateAllowClick,
+                flyTo,
             }}
         >
             {children}
